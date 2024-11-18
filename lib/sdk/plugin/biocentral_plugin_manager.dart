@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:biocentral/plugins/bayesian-optimization/bayesian_optimization_plugin.dart';
 import 'package:biocentral/plugins/biocentral_core_plugins.dart';
 import 'package:equatable/equatable.dart';
 import 'package:event_bus/event_bus.dart';
@@ -44,7 +45,8 @@ class BiocentralPluginManager extends Equatable {
     PpiPlugin ppiPlugin = PpiPlugin(eventBus);
     EmbeddingsPlugin embeddingsPlugin = EmbeddingsPlugin(eventBus);
     PredictionModelsPlugin predictionModelsPlugin = PredictionModelsPlugin(eventBus);
-    return {proteinPlugin, ppiPlugin, embeddingsPlugin, predictionModelsPlugin};
+    BayesianOptimizationPlugin bayesianOptimizationPlugin = BayesianOptimizationPlugin(eventBus);
+    return {proteinPlugin, ppiPlugin, embeddingsPlugin, predictionModelsPlugin, bayesianOptimizationPlugin};
   }
 
   void registerGlobalProperties(

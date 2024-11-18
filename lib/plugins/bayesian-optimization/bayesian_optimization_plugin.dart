@@ -1,5 +1,9 @@
+import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_hub_bloc.dart';
 import 'package:biocentral/plugins/bayesian-optimization/data/bayesian_optimization_client.dart';
 import 'package:biocentral/plugins/bayesian-optimization/domain/bayesian_optimization_repository.dart';
+import 'package:biocentral/plugins/bayesian-optimization/presentation/views/bayesian_optimization_command_view.dart';
+import 'package:biocentral/plugins/bayesian-optimization/presentation/views/bayesian_optimization_hub_view.dart';
+import 'package:biocentral/plugins/embeddings/model/embeddings_column_wizard.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,25 +41,10 @@ class BayesianOptimizationPlugin extends BiocentralPlugin
 
   @override
   List<BlocProvider> getListeningBlocs(BuildContext context) {
-    final commandBloc = BayesianOptimizationCommandBloc(
-        getBiocentralDatabaseRepository(context),
-        getBiocentralClientRepository(context),
-        getBiocentralProjectRepository(context),
-        getDatabase(context),
-        eventBus);
-    final hubBloc = BayesianOptimizationHubBloc(
-        getBiocentralColumnWizardRepository(context), getBiocentralDatabaseRepository(context), getDatabase(context));
-    eventBus.on<BiocentralDatabaseUpdatedEvent>().listen((event) {
-      hubBloc.add(BayesianOptimizationHubReloadEvent());
-    });
-    eventBus.on<BiocentralPluginTabSwitchedEvent>().listen((event) {
-      if (event.switchedTab == getTab()) {
-        hubBloc.add(BayesianOptimizationHubReloadEvent());
-      }
-    });
+    final bayesianOptimizationHubBloc = BayesianOptimizationHubBloc();
     return [
-      BlocProvider<BayesianOptimizationCommandBloc>.value(value: commandBloc),
-      BlocProvider<BayesianOptimizationHubBloc>.value(value: hubBloc)
+      BlocProvider<BayesianOptimizationHubBloc>.value(
+          value: bayesianOptimizationHubBloc),
     ];
   }
 
@@ -66,7 +55,7 @@ class BayesianOptimizationPlugin extends BiocentralPlugin
 
   @override
   Widget getIcon() {
-    return const Icon(Icons.optimization);
+    return const Icon(Icons.calculate_outlined);
   }
 
   @override
@@ -76,6 +65,6 @@ class BayesianOptimizationPlugin extends BiocentralPlugin
 
   @override
   List<ColumnWizardFactory<ColumnWizard>> createColumnWizardFactories() {
-    return [BayesianOptimizationColumnWizardFactory()];
+    return [EmbeddingsColumnWizardFactory()];
   }
 }
