@@ -4,13 +4,10 @@ class BayesianOptimizationHubView extends StatefulWidget {
   const BayesianOptimizationHubView({super.key});
 
   @override
-  State<BayesianOptimizationHubView> createState() =>
-      _BayesianOptimizationHubViewState();
+  State<BayesianOptimizationHubView> createState() => _BayesianOptimizationHubViewState();
 }
 
-class _BayesianOptimizationHubViewState
-    extends State<BayesianOptimizationHubView>
-    with AutomaticKeepAliveClientMixin {
+class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubView> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();

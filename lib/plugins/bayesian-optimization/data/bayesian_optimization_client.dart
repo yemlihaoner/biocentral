@@ -1,9 +1,6 @@
-
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 
-
-final class BayesianOptimizationClientFactory
-    extends BiocentralClientFactory<BayesianOptimizationClient> {
+final class BayesianOptimizationClientFactory extends BiocentralClientFactory<BayesianOptimizationClient> {
   @override
   BayesianOptimizationClient create(BiocentralServerData? server) {
     return BayesianOptimizationClient(server);

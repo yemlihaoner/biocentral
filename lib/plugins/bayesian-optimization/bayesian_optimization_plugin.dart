@@ -43,8 +43,7 @@ class BayesianOptimizationPlugin extends BiocentralPlugin
   List<BlocProvider> getListeningBlocs(BuildContext context) {
     final bayesianOptimizationHubBloc = BayesianOptimizationHubBloc();
     return [
-      BlocProvider<BayesianOptimizationHubBloc>.value(
-          value: bayesianOptimizationHubBloc),
+      BlocProvider<BayesianOptimizationHubBloc>.value(value: bayesianOptimizationHubBloc),
     ];
   }
 

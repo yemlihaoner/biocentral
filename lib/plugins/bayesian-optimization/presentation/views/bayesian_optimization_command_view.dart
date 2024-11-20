@@ -7,12 +7,10 @@ class BayesianOptimizationCommandView extends StatefulWidget {
   const BayesianOptimizationCommandView({super.key});
 
   @override
-  State<BayesianOptimizationCommandView> createState() =>
-      _BayesianOptimizationCommandViewState();
+  State<BayesianOptimizationCommandView> createState() => _BayesianOptimizationCommandViewState();
 }
 
-class _BayesianOptimizationCommandViewState
-    extends State<BayesianOptimizationCommandView> {
+class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCommandView> {
   @override
   void initState() {
     super.initState();
@@ -28,7 +26,7 @@ class _BayesianOptimizationCommandViewState
           message: "Get meaningful representations for your data",
           child: BiocentralButton(
             label: "Calculate embeddings..",
-            iconData: Icons.calculate,
+            iconData: Icons.calendar_month_rounded,
             requiredServices: const ["embeddings_service"],
             onTap: () {
               // Add your onTap logic here
