@@ -14,12 +14,10 @@ class BayesianOptimizationHubLoaded extends BayesianOptimizationHubState {}
 
 // Define the bloc
 class BayesianOptimizationHubBloc extends Bloc<BayesianOptimizationHubEvent, BayesianOptimizationHubState> {
-  BayesianOptimizationHubBloc() : super(BayesianOptimizationHubInitial());
-
-  @override
-  Stream<BayesianOptimizationHubState> mapEventToState(BayesianOptimizationHubEvent event) async* {
-    if (event is BayesianOptimizationHubReloadEvent) {
-      yield BayesianOptimizationHubLoaded();
-    }
+  BayesianOptimizationHubBloc() : super(BayesianOptimizationHubInitial()) {
+    on<BayesianOptimizationHubReloadEvent>((event, emit) {
+      emit(BayesianOptimizationHubLoaded());
+    });
   }
 }
+

@@ -19,8 +19,6 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    // EmbeddingsHubBloc embeddingsHubBloc = BlocProvider.of<EmbeddingsHubBloc>(context);
-
     return const Text("Bayesian Optimization Hub View");
   }
 }

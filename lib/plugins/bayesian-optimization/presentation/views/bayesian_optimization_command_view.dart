@@ -23,22 +23,22 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
     return BiocentralCommandBar(
       commands: [
         BiocentralTooltip(
-          message: "Get meaningful representations for your data",
+          message: 'Start new training',
           child: BiocentralButton(
-            label: "Calculate embeddings..",
-            iconData: Icons.calendar_month_rounded,
-            requiredServices: const ["embeddings_service"],
+            label: 'Start new training',
+            iconData: Icons.add,
+            requiredServices: const [],
             onTap: () {
               // Add your onTap logic here
             },
           ),
         ),
         BiocentralTooltip(
-          message: "Perform UMAP dimensionality reduction on your embeddings",
+          message: "Iterate on training",
           child: BiocentralButton(
-            label: "Calculate UMAP..",
-            iconData: Icons.auto_graph,
-            requiredServices: const ["embeddings_service"],
+            label: "Iterate on training",
+            iconData: Icons.model_training,
+            requiredServices: const [],
             onTap: () {
               // Add your onTap logic here
             },
