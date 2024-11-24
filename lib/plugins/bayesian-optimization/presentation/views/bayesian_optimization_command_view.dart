@@ -1,4 +1,6 @@
 import 'package:bio_flutter/bio_flutter.dart';
+import 'package:biocentral/biocentral/presentation/dialogs/welcome_dialog.dart';
+import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/StartBoTrainingDialog.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +18,15 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
     super.initState();
   }
 
+  void openStartTrainingDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const StartBoTrainingDialog();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // final bayesianOptimizationCommandBloc =
@@ -30,6 +41,7 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
             requiredServices: const [],
             onTap: () {
               // Add your onTap logic here
+              openStartTrainingDialog();
             },
           ),
         ),
