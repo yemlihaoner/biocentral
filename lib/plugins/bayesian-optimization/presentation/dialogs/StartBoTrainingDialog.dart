@@ -2,7 +2,7 @@ import 'package:biocentral/sdk/presentation/widgets/biocentral_entity_type_selec
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class StartBoTrainingDialog extends StatefulWidget {
+class StartBOTrainingDialog extends StatefulWidget {
   const StartBoTrainingDialog({super.key});
 
   @override
