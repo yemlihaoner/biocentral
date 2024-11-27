@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class StartBOTrainingDialog extends StatefulWidget {
-  const StartBoTrainingDialog({super.key});
+  const StartBOTrainingDialog({super.key});
 
   @override
-  _StartBoTrainingDialogState createState() => _StartBoTrainingDialogState();
+  _StartBOTrainingDialogState createState() => _StartBOTrainingDialogState();
 }
 
-class _StartBoTrainingDialogState extends State<StartBoTrainingDialog> {
+class _StartBOTrainingDialogState extends State<StartBOTrainingDialog> {
   Type? selectedDataset;
   String? selectedModel;
   List<String> models = ['Gaussian Processes', 'Random Forest']; // Example models
