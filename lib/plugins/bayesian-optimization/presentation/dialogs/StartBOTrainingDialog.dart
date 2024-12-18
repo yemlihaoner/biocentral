@@ -74,13 +74,17 @@ class BOTrainingDialogBloc extends Cubit<BOTrainingDialogState> {
   BOTrainingDialogBloc(this.proteinRepository) : super(BOTrainingDialogState());
 
   void selectDataset(Type dataset) {
+    var availableFeatures = [''];
+    if (dataset.toString() == "Protein") {
+      availableFeatures = proteinRepository.getTrainableColumnNames();
+    }
     emit(state.copyWith(
-      selectedDataset: dataset,
-      currentStep: BOTrainingDialogStep.taskSelection,
-      selectedTask: null,
-      selectedFeature: null,
-      selectedModel: null,
-    ));
+        selectedDataset: dataset,
+        currentStep: BOTrainingDialogStep.taskSelection,
+        selectedTask: null,
+        selectedFeature: null,
+        selectedModel: null,
+        availableFeatures: availableFeatures));
   }
 
   void selectTask(String task) {

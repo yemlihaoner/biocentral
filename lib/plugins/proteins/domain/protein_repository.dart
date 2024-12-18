@@ -7,10 +7,14 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
 
   ProteinRepository() {
     // EXAMPLE DATA
-    final Protein p1 = Protein('P06213', sequence: AminoAcidSequence('MATGGRRGAA'));
-    final Protein p2 = Protein('P11111', sequence: AminoAcidSequence('MAGGRGAA'));
-    final Protein p3 = Protein('P22222', sequence: AminoAcidSequence('MATGGRRGAATTTTTT'));
-    final Protein p4 = Protein('P33333', sequence: AminoAcidSequence('MAGGRGAAMMMMMMAAAAGGGG'));
+    final Protein p1 =
+        Protein('P06213', sequence: AminoAcidSequence('MATGGRRGAA'));
+    final Protein p2 =
+        Protein('P11111', sequence: AminoAcidSequence('MAGGRGAA'));
+    final Protein p3 =
+        Protein('P22222', sequence: AminoAcidSequence('MATGGRRGAATTTTTT'));
+    final Protein p4 = Protein('P33333',
+        sequence: AminoAcidSequence('MAGGRGAAMMMMMMAAAAGGGG'));
     addEntity(p1);
     addEntity(p2);
     addEntity(p3);
@@ -86,14 +90,16 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
   }
 
   @override
-  void syncFromDatabase(Map<String, BioEntity> entities, DatabaseImportMode importMode) async {
+  void syncFromDatabase(
+      Map<String, BioEntity> entities, DatabaseImportMode importMode) async {
     if (entities.entries.first.value is Protein) {
       importEntities(entities as Map<String, Protein>, importMode);
     }
     if (entities.entries.first.value is ProteinProteinInteraction) {
       clearDatabase();
       for (BioEntity entity in entities.values) {
-        final Protein interactor1 = (entity as ProteinProteinInteraction).interactor1;
+        final Protein interactor1 =
+            (entity as ProteinProteinInteraction).interactor1;
         final Protein interactor2 = entity.interactor2;
 
         updateEntity(interactor1.getID(), interactor1);
@@ -115,11 +121,12 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
 
   // ** TAXONOMY ***
 
-  Future<Map<String, Protein>> addTaxonomyData(Map<int, Taxonomy> taxonomyData) async {
+  Future<Map<String, Protein>> addTaxonomyData(
+      Map<int, Taxonomy> taxonomyData) async {
     for (MapEntry<String, Protein> proteinEntry in _proteins.entries) {
       if (taxonomyData.keys.contains(proteinEntry.value.taxonomy.id)) {
-        _proteins[proteinEntry.key] =
-            proteinEntry.value.copyWith(taxonomy: taxonomyData[proteinEntry.value.taxonomy.id]);
+        _proteins[proteinEntry.key] = proteinEntry.value
+            .copyWith(taxonomy: taxonomyData[proteinEntry.value.taxonomy.id]);
       }
     }
     return Map.from(_proteins);
@@ -142,22 +149,45 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
     // TODO IMPORT MODE
     int numberUnknownProteins = 0;
 
-    for (MapEntry<String, Embedding> proteinIDToEmbedding in newEmbeddings.entries) {
+    for (MapEntry<String, Embedding> proteinIDToEmbedding
+        in newEmbeddings.entries) {
       final Protein? protein = _proteins[proteinIDToEmbedding.key];
       if (protein != null) {
-        _proteins[proteinIDToEmbedding.key] =
-            protein.copyWith(embeddings: protein.embeddings.addEmbedding(embedding: proteinIDToEmbedding.value));
+        _proteins[proteinIDToEmbedding.key] = protein.copyWith(
+            embeddings: protein.embeddings
+                .addEmbedding(embedding: proteinIDToEmbedding.value));
       } else {
         numberUnknownProteins++;
       }
     }
 
     if (numberUnknownProteins > 0) {
-      logger.w('Number unknown proteins from embeddings: $numberUnknownProteins');
+      logger
+          .w('Number unknown proteins from embeddings: $numberUnknownProteins');
     }
     return Map.from(_proteins);
   }
+
+  List<String> getColumnNames() {
+    if (_proteins.isEmpty) return [];
+    return _proteins.values.first.toMap().keys.toList();
+  }
+
+  List<String> getTrainableColumnNames() {
+    var columnNames = getColumnNames();
+    return columnNames
+        .where((column) {
+          return _proteins.values.any((protein) {
+            return protein.attributes.toMap()[column] == null ||
+                protein.attributes.toMap()[column] == "Unknown";
+          });
+        })
+        .where((column) =>
+            column != "id" && column != "taxonomyID" && column != "embeddings")
+        .toList();
+  }
 }
+
 /*
   void handleGridChangedEvent(PlutoGridOnChangedEvent event) {
     int columnIndex = event.columnIdx;
