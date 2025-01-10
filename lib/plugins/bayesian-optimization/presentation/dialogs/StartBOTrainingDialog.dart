@@ -1,3 +1,7 @@
+import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_commands.dart';
+import 'package:biocentral/plugins/bayesian-optimization/data/bayesian_optimization_client.dart';
+import 'package:biocentral/sdk/domain/biocentral_database.dart';
+import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 import 'package:biocentral/sdk/presentation/dialogs/biocentral_dialog.dart';
 import 'package:biocentral/sdk/presentation/widgets/biocentral_entity_type_selection.dart';
 import 'package:flutter/material.dart';
@@ -58,8 +62,7 @@ class BOTrainingDialogState {
       selectedTask: selectedTask ?? this.selectedTask,
       selectedFeature: selectedFeature ?? this.selectedFeature,
       selectedModel: selectedModel ?? this.selectedModel,
-      exploitationExplorationValue:
-          exploitationExplorationValue ?? this.exploitationExplorationValue,
+      exploitationExplorationValue: exploitationExplorationValue ?? this.exploitationExplorationValue,
       availableFeatures: availableFeatures ?? this.availableFeatures,
       tasks: tasks ?? this.tasks,
       models: models ?? this.models,
@@ -70,8 +73,9 @@ class BOTrainingDialogState {
 // BLoC
 class BOTrainingDialogBloc extends Cubit<BOTrainingDialogState> {
   final ProteinRepository proteinRepository;
+  final BayesianOptimizationClient client;
 
-  BOTrainingDialogBloc(this.proteinRepository) : super(BOTrainingDialogState());
+  BOTrainingDialogBloc(this.proteinRepository, this.client) : super(BOTrainingDialogState());
 
   void selectDataset(Type dataset) {
     var availableFeatures = [''];
@@ -97,7 +101,6 @@ class BOTrainingDialogBloc extends Cubit<BOTrainingDialogState> {
   }
 
   void selectFeature(String feature) async {
-    // Here you could potentially fetch specific features from the repository
     emit(state.copyWith(
       selectedFeature: feature,
       currentStep: BOTrainingDialogStep.modelSelection,
@@ -116,9 +119,31 @@ class BOTrainingDialogBloc extends Cubit<BOTrainingDialogState> {
     emit(state.copyWith(exploitationExplorationValue: value));
   }
 
-  void startTraining() {
-    // Implement your training start logic here
-    print('Starting training with: ${state.toString()}');
+// remove context
+  void startTraining(BuildContext context) {
+    final config = {
+      'databaseHash': proteinRepository.getHash().toString(),
+      'task': state.selectedTask.toString(),
+      'feature': state.selectedFeature.toString(),
+      'model': state.selectedModel.toString(),
+      'exploitationExplorationValue': state.exploitationExplorationValue.toString(),
+    };
+
+    //BoCommandBloc erstellen und wie class BiotrainerTrainingBloc extends BiocentralBloc<BiotrainerTrainingEvent, BiotrainerTrainingState>, damit man state nicht schreiben muss
+    //wenn starttraining aufgerufen, wird das event an den bloc, nicht an BOTrainingDialogBloc
+
+    // command mit config hier erstellen, dann command executen mit executeWithLogging, welches live state zurueckgibt (BiocentralCommandState)
+    // in models_commands gibt     yield left(state.setOperating(information: 'Training new model!')); den aktuellen state, yield right fuer das ergebnis, bei uns die predictable werte als map wsl
+
+    final command = TransferBOTrainingConfigCommand(
+      biocentralProjectRepository: context.read<BiocentralProjectRepository>(),
+      biocentralDatabase: context.read<BiocentralDatabase>(),
+      client: client,
+      repository: proteinRepository,
+      trainingConfiguration: config,
+    );
+
+    command.executeWithLogging(projectRepository, state)
   }
 
   List<String> get availableFeatures {
@@ -146,13 +171,11 @@ class StartBOTrainingDialog extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Dataset Selection
-              if (state.currentStep.index >=
-                  BOTrainingDialogStep.datasetSelection.index)
+              if (state.currentStep.index >= BOTrainingDialogStep.datasetSelection.index)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Select Dataset:',
-                        style: TextStyle(fontSize: 16)),
+                    const Text('Select Dataset:', style: TextStyle(fontSize: 16)),
                     const SizedBox(height: 24),
                     BiocentralEntityTypeSelection(
                       onChangedCallback: (Type? value) {
@@ -164,9 +187,7 @@ class StartBOTrainingDialog extends StatelessWidget {
                 ),
 
               // Task Selection
-              if (state.currentStep.index >=
-                      BOTrainingDialogStep.taskSelection.index &&
-                  state.selectedDataset != null)
+              if (state.currentStep.index >= BOTrainingDialogStep.taskSelection.index && state.selectedDataset != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -189,15 +210,12 @@ class StartBOTrainingDialog extends StatelessWidget {
                 ),
 
               // Feature Selection
-              if (state.currentStep.index >=
-                      BOTrainingDialogStep.featureSelection.index &&
-                  state.selectedTask != null)
+              if (state.currentStep.index >= BOTrainingDialogStep.featureSelection.index && state.selectedTask != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                    const Text('Select Feature:',
-                        style: TextStyle(fontSize: 16)),
+                    const Text('Select Feature:', style: TextStyle(fontSize: 16)),
                     DropdownButton<String>(
                       value: state.selectedFeature,
                       hint: const Text('Choose a feature'),
@@ -215,9 +233,7 @@ class StartBOTrainingDialog extends StatelessWidget {
                 ),
 
               // Model Selection
-              if (state.currentStep.index >=
-                      BOTrainingDialogStep.modelSelection.index &&
-                  state.selectedFeature != null)
+              if (state.currentStep.index >= BOTrainingDialogStep.modelSelection.index && state.selectedFeature != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -240,25 +256,20 @@ class StartBOTrainingDialog extends StatelessWidget {
                 ),
 
               // Exploitation vs. Exploration Selection
-              if (state.currentStep.index >=
-                      BOTrainingDialogStep
-                          .exploitationExplorationSelection.index &&
+              if (state.currentStep.index >= BOTrainingDialogStep.exploitationExplorationSelection.index &&
                   state.selectedModel != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                    const Text('Exploitation vs Exploration:',
-                        style: TextStyle(fontSize: 16)),
+                    const Text('Exploitation vs Exploration:', style: TextStyle(fontSize: 16)),
                     Slider(
                       value: state.exploitationExplorationValue,
                       min: 0,
                       max: 1,
                       divisions: 10,
-                      label:
-                          state.exploitationExplorationValue.toStringAsFixed(1),
-                      onChanged: (value) =>
-                          bloc.updateExploitationExploration(value),
+                      label: state.exploitationExplorationValue.toStringAsFixed(1),
+                      onChanged: (value) => bloc.updateExploitationExploration(value),
                     ),
                   ],
                 ),
@@ -274,13 +285,12 @@ class StartBOTrainingDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   TextButton(
-                    onPressed:
-                        state.currentStep == BOTrainingDialogStep.complete
-                            ? () {
-                                bloc.startTraining();
-                                Navigator.of(context).pop();
-                              }
-                            : null,
+                    onPressed: state.currentStep == BOTrainingDialogStep.complete
+                        ? () {
+                            bloc.startTraining();
+                            Navigator.of(context).pop();
+                          }
+                        : null,
                     child: const Text('Start'),
                   ),
                 ],
