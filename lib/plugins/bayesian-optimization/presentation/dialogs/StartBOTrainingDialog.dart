@@ -1,84 +1,304 @@
+import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_commands.dart';
+import 'package:biocentral/plugins/bayesian-optimization/data/bayesian_optimization_client.dart';
+import 'package:biocentral/sdk/domain/biocentral_database.dart';
+import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
+import 'package:biocentral/sdk/presentation/dialogs/biocentral_dialog.dart';
 import 'package:biocentral/sdk/presentation/widgets/biocentral_entity_type_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class StartBOTrainingDialog extends StatefulWidget {
+import '../../../proteins/domain/protein_repository.dart';
+
+// State Classes
+enum BOTrainingDialogStep {
+  datasetSelection,
+  taskSelection,
+  featureSelection,
+  modelSelection,
+  exploitationExplorationSelection,
+  complete
+}
+
+class BOTrainingDialogState {
+  final BOTrainingDialogStep currentStep;
+  final Type? selectedDataset;
+  final String? selectedTask;
+  final String? selectedFeature;
+  final String? selectedModel;
+  final double exploitationExplorationValue;
+  final List<String> availableFeatures;
+  final List<String> tasks;
+  final List<String> models;
+
+  BOTrainingDialogState({
+    this.currentStep = BOTrainingDialogStep.datasetSelection,
+    this.selectedDataset,
+    this.selectedTask,
+    this.selectedFeature,
+    this.selectedModel,
+    this.exploitationExplorationValue = 0.5,
+    this.availableFeatures = const ['Toxic'],
+    this.tasks = const [
+      'Find proteins with optimal values for feature...',
+      'Find proteins with the highest probability to have feature...'
+    ],
+    this.models = const ['Gaussian Processes', 'Random Forest'],
+  });
+
+  BOTrainingDialogState copyWith({
+    BOTrainingDialogStep? currentStep,
+    Type? selectedDataset,
+    String? selectedTask,
+    String? selectedFeature,
+    String? selectedModel,
+    double? exploitationExplorationValue,
+    List<String>? availableFeatures,
+    List<String>? tasks,
+    List<String>? models,
+  }) {
+    return BOTrainingDialogState(
+      currentStep: currentStep ?? this.currentStep,
+      selectedDataset: selectedDataset ?? this.selectedDataset,
+      selectedTask: selectedTask ?? this.selectedTask,
+      selectedFeature: selectedFeature ?? this.selectedFeature,
+      selectedModel: selectedModel ?? this.selectedModel,
+      exploitationExplorationValue: exploitationExplorationValue ?? this.exploitationExplorationValue,
+      availableFeatures: availableFeatures ?? this.availableFeatures,
+      tasks: tasks ?? this.tasks,
+      models: models ?? this.models,
+    );
+  }
+}
+
+// BLoC
+class BOTrainingDialogBloc extends Cubit<BOTrainingDialogState> {
+  final ProteinRepository proteinRepository;
+  final BayesianOptimizationClient client;
+
+  BOTrainingDialogBloc(this.proteinRepository, this.client) : super(BOTrainingDialogState());
+
+  void selectDataset(Type dataset) {
+    var availableFeatures = [''];
+    if (dataset.toString() == "Protein") {
+      availableFeatures = proteinRepository.getTrainableColumnNames();
+    }
+    emit(state.copyWith(
+        selectedDataset: dataset,
+        currentStep: BOTrainingDialogStep.taskSelection,
+        selectedTask: null,
+        selectedFeature: null,
+        selectedModel: null,
+        availableFeatures: availableFeatures));
+  }
+
+  void selectTask(String task) {
+    emit(state.copyWith(
+      selectedTask: task,
+      currentStep: BOTrainingDialogStep.featureSelection,
+      selectedFeature: null,
+      selectedModel: null,
+    ));
+  }
+
+  void selectFeature(String feature) async {
+    emit(state.copyWith(
+      selectedFeature: feature,
+      currentStep: BOTrainingDialogStep.modelSelection,
+      selectedModel: null,
+    ));
+  }
+
+  void selectModel(String model) {
+    emit(state.copyWith(
+      selectedModel: model,
+      currentStep: BOTrainingDialogStep.complete,
+    ));
+  }
+
+  void updateExploitationExploration(double value) {
+    emit(state.copyWith(exploitationExplorationValue: value));
+  }
+
+// remove context
+  void startTraining(BuildContext context) {
+    final config = {
+      'databaseHash': proteinRepository.getHash().toString(),
+      'task': state.selectedTask.toString(),
+      'feature': state.selectedFeature.toString(),
+      'model': state.selectedModel.toString(),
+      'exploitationExplorationValue': state.exploitationExplorationValue.toString(),
+    };
+
+    //BoCommandBloc erstellen und wie class BiotrainerTrainingBloc extends BiocentralBloc<BiotrainerTrainingEvent, BiotrainerTrainingState>, damit man state nicht schreiben muss
+    //wenn starttraining aufgerufen, wird das event an den bloc, nicht an BOTrainingDialogBloc
+
+    // command mit config hier erstellen, dann command executen mit executeWithLogging, welches live state zurueckgibt (BiocentralCommandState)
+    // in models_commands gibt     yield left(state.setOperating(information: 'Training new model!')); den aktuellen state, yield right fuer das ergebnis, bei uns die predictable werte als map wsl
+
+    final command = TransferBOTrainingConfigCommand(
+      biocentralProjectRepository: context.read<BiocentralProjectRepository>(),
+      biocentralDatabase: context.read<BiocentralDatabase>(),
+      client: client,
+      repository: proteinRepository,
+      trainingConfiguration: config,
+    );
+
+    command.executeWithLogging(projectRepository, state)
+  }
+
+  List<String> get availableFeatures {
+    return state.availableFeatures;
+  }
+}
+
+// Dialog Widget
+class StartBOTrainingDialog extends StatelessWidget {
   const StartBOTrainingDialog({super.key});
 
   @override
-  _StartBOTrainingDialogState createState() => _StartBOTrainingDialogState();
-}
-
-class _StartBOTrainingDialogState extends State<StartBOTrainingDialog> {
-  Type? selectedDataset;
-  String? selectedModel;
-  List<String> models = ['Gaussian Processes', 'Random Forest']; // Example models
-  double exploitationExplorationValue = 0.5; // Initial value for the slider
-
-  @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Start Training'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Select Dataset:'),
-          BiocentralEntityTypeSelection(
-            onChangedCallback: (Type? value) {
-              setState(() {
-                selectedDataset = value;
-              });
-            },
-            initialValue: selectedDataset,
-          ),
-          const SizedBox(height: 16),
-          const Text('Select Model:'),
-          DropdownButton<String>(
-            value: selectedModel,
-            hint: const Text('Choose a model'),
-            items: models.map((model) {
-              return DropdownMenuItem(
-                value: model,
-                child: Text(model),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                selectedModel = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          const Text('Exploitation vs Exploration:'),
-          Slider(
-            value: exploitationExplorationValue,
-            min: 0,
-            max: 1,
-            divisions: 10,
-            label: exploitationExplorationValue.toStringAsFixed(1),
-            onChanged: (value) {
-              setState(() {
-                exploitationExplorationValue = value;
-              });
-            },
-          ),
-        ],
+    return BlocProvider(
+      create: (context) => BOTrainingDialogBloc(
+          // Inject your ProteinRepository here
+          context.read<ProteinRepository>()),
+      child: BlocBuilder<BOTrainingDialogBloc, BOTrainingDialogState>(
+        builder: (context, state) {
+          final bloc = context.read<BOTrainingDialogBloc>();
+
+          return BiocentralDialog(
+            children: [
+              const Text('Start Training', style: TextStyle(fontSize: 24)),
+              const SizedBox(height: 16),
+
+              // Dataset Selection
+              if (state.currentStep.index >= BOTrainingDialogStep.datasetSelection.index)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Select Dataset:', style: TextStyle(fontSize: 16)),
+                    const SizedBox(height: 24),
+                    BiocentralEntityTypeSelection(
+                      onChangedCallback: (Type? value) {
+                        if (value != null) bloc.selectDataset(value);
+                      },
+                      initialValue: state.selectedDataset,
+                    ),
+                  ],
+                ),
+
+              // Task Selection
+              if (state.currentStep.index >= BOTrainingDialogStep.taskSelection.index && state.selectedDataset != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text('Select Task:', style: TextStyle(fontSize: 16)),
+                    DropdownButton<String>(
+                      value: state.selectedTask,
+                      hint: const Text('Choose a task'),
+                      items: state.tasks.map((task) {
+                        return DropdownMenuItem(
+                          value: task,
+                          child: Text(task),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) bloc.selectTask(value);
+                      },
+                    ),
+                  ],
+                ),
+
+              // Feature Selection
+              if (state.currentStep.index >= BOTrainingDialogStep.featureSelection.index && state.selectedTask != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text('Select Feature:', style: TextStyle(fontSize: 16)),
+                    DropdownButton<String>(
+                      value: state.selectedFeature,
+                      hint: const Text('Choose a feature'),
+                      items: state.availableFeatures.map((feature) {
+                        return DropdownMenuItem(
+                          value: feature,
+                          child: Text(feature),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) bloc.selectFeature(value);
+                      },
+                    ),
+                  ],
+                ),
+
+              // Model Selection
+              if (state.currentStep.index >= BOTrainingDialogStep.modelSelection.index && state.selectedFeature != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text('Select Model:', style: TextStyle(fontSize: 16)),
+                    DropdownButton<String>(
+                      value: state.selectedModel,
+                      hint: const Text('Choose a model'),
+                      items: state.models.map((model) {
+                        return DropdownMenuItem(
+                          value: model,
+                          child: Text(model),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) bloc.selectModel(value);
+                      },
+                    ),
+                  ],
+                ),
+
+              // Exploitation vs. Exploration Selection
+              if (state.currentStep.index >= BOTrainingDialogStep.exploitationExplorationSelection.index &&
+                  state.selectedModel != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text('Exploitation vs Exploration:', style: TextStyle(fontSize: 16)),
+                    Slider(
+                      value: state.exploitationExplorationValue,
+                      min: 0,
+                      max: 1,
+                      divisions: 10,
+                      label: state.exploitationExplorationValue.toStringAsFixed(1),
+                      onChanged: (value) => bloc.updateExploitationExploration(value),
+                    ),
+                  ],
+                ),
+
+              // Action Buttons
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: state.currentStep == BOTrainingDialogStep.complete
+                        ? () {
+                            bloc.startTraining();
+                            Navigator.of(context).pop();
+                          }
+                        : null,
+                    child: const Text('Start'),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            // Add your start training logic here
-            Navigator.of(context).pop();
-          },
-          child: const Text('Start'),
-        ),
-      ],
     );
   }
 }

@@ -1,4 +1,8 @@
+import 'package:biocentral/plugins/prediction_models/data/prediction_models_service_api.dart';
+import 'package:biocentral/plugins/prediction_models/model/prediction_model.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/data/biocentral_task_dto.dart';
+import 'package:fpdart/fpdart.dart';
 
 final class BayesianOptimizationClientFactory extends BiocentralClientFactory<BayesianOptimizationClient> {
   @override
@@ -9,6 +13,20 @@ final class BayesianOptimizationClientFactory extends BiocentralClientFactory<Ba
 
 class BayesianOptimizationClient extends BiocentralClient {
   BayesianOptimizationClient(super._server);
+
+  Future<Either<BiocentralException, String>> startTraining(String configFile, String databaseHash) async {
+    final responseEither = await doPostRequest(
+      PredictionModelsServiceEndpoints.startTraining,
+      {'config_file': configFile, 'database_hash': databaseHash},
+    );
+    return responseEither.flatMap((responseMap) => right(responseMap['task_id']));
+  }
+
+  Stream<PredictionModel?> biotrainerTrainingTaskStream(String taskID, PredictionModel initialModel) async* {
+    PredictionModel? updateFunction(PredictionModel? currentModel, BiocentralTaskDTO biocentralDTO) =>
+        currentModel?.updateTrainingResult(BiotrainerTrainingResult.fromDTO(biocentralDTO).getOrElse((e) => null));
+    yield* taskUpdateStream<PredictionModel?>(taskID, initialModel, updateFunction);
+  }
 
   @override
   String getServiceName() {
