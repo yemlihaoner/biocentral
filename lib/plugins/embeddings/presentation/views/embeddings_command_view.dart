@@ -1,4 +1,9 @@
 import 'package:bio_flutter/bio_flutter.dart';
+import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:biocentral/plugins/embeddings/bloc/calculate_embeddings_dialog_bloc.dart';
 import 'package:biocentral/plugins/embeddings/bloc/calculate_projections_dialog_bloc.dart';
 import 'package:biocentral/plugins/embeddings/bloc/embeddings_command_bloc.dart';
@@ -98,16 +103,14 @@ class _EmbeddingsCommandViewState extends State<EmbeddingsCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Load existing representations for your data',
-          child: BiocentralButton(
-            label: 'Load embeddings..',
+          child: BiocentralSimpleButton(
             iconData: Icons.file_open,
             onTap: () => loadEmbeddingsFile(embeddingsCommandBloc),
           ),
         ),
         BiocentralTooltip(
           message: 'Get meaningful representations for your data',
-          child: BiocentralButton(
-            label: 'Calculate embeddings..',
+          child: BiocentralSimpleButton(
             iconData: Icons.calculate,
             requiredServices: const ['embeddings_service'],
             onTap: () => openCalculateEmbeddingsDialog(embeddingsCommandBloc),
@@ -115,8 +118,7 @@ class _EmbeddingsCommandViewState extends State<EmbeddingsCommandView> {
         ),
         BiocentralTooltip(
           message: 'Perform dimensionality reduction methods on your embeddings',
-          child: BiocentralButton(
-            label: 'Calculate projections..',
+          child: BiocentralSimpleButton(
             iconData: Icons.auto_graph,
             requiredServices: const ['embeddings_service'],
             onTap: () => openCalculateUMAPDialog(embeddingsCommandBloc),

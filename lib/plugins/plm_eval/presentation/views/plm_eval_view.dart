@@ -30,12 +30,14 @@ class _PLMEvalViewState extends State<PLMEvalView> with AutomaticKeepAliveClient
         body: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Flexible(
+            Flexible(
               child: TabBar(
+                labelColor: Theme.of(context).colorScheme.onSurface,
+                unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
                 tabs: [
-                  Tab(icon: Icon(Icons.fact_check_outlined), text: 'Evaluation'),
-                  Tab(icon: Icon(Icons.auto_graph), text: 'Results'),
-                  Tab(icon: Icon(Icons.sports_score), text: 'Leaderboard'),
+                  const Tab(icon: Icon(Icons.fact_check_outlined), text: 'Evaluation'),
+                  const Tab(icon: Icon(Icons.auto_graph), text: 'Results'),
+                  const Tab(icon: Icon(Icons.sports_score), text: 'Leaderboard'),
                 ],
               ),
             ),
@@ -72,9 +74,9 @@ class _PLMEvalViewState extends State<PLMEvalView> with AutomaticKeepAliveClient
       return Container();
     }
     final Map<String, Map<String, Set<BiocentralMLMetric>>> metrics = {};
-    for(final entry in state.autoEvalProgress!.results.entries) {
+    for (final entry in state.autoEvalProgress!.results.entries) {
       metrics.putIfAbsent(entry.key.datasetName, () => {});
-      if(entry.value != null && entry.value?.biotrainerTrainingResult != null) {
+      if (entry.value != null && entry.value?.biotrainerTrainingResult != null) {
         metrics[entry.key.datasetName]?[entry.key.splitName] = entry.value!.biotrainerTrainingResult!.testSetMetrics;
       }
     }
@@ -83,7 +85,7 @@ class _PLMEvalViewState extends State<PLMEvalView> with AutomaticKeepAliveClient
 
   Widget buildLeaderboardView() {
     return BlocBuilder<PLMEvalLeaderboardBloc, PLMEvalLeaderboardState>(builder: (context, state) {
-      if(state.status == PLMEvalLeaderBoardStatus.loaded) {
+      if (state.status == PLMEvalLeaderBoardStatus.loaded) {
         return PLMEvalLeaderboardView(leaderboard: state.leaderboard);
       }
       return const CircularProgressIndicator();
