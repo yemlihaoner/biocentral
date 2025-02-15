@@ -24,21 +24,24 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
   @override
   Widget build(BuildContext context) {
     final BiocentralClientBloc biocentralClientBloc = BlocProvider.of<BiocentralClientBloc>(context);
-    return BlocBuilder<BiocentralClientBloc, BiocentralClientState>(builder: (context, state) {
-      return BiocentralDialog(
-        children: [
-          SizedBox(
+    return BlocBuilder<BiocentralClientBloc, BiocentralClientState>(
+      builder: (context, state) {
+        return BiocentralDialog(
+          children: [
+            SizedBox(
               width: SizeConfig.screenWidth(context) * 0.75,
               height: SizeConfig.screenHeight(context) * 0.6,
-              child: buildServerTabBar(biocentralClientBloc, state),),
-          BiocentralStatusIndicator(state: state, center: true),
-          BiocentralSmallButton(
-            label: 'Close',
-            onTap: closeDialog,
-          ),
-        ],
-      );
-    },);
+              child: buildServerTabBar(biocentralClientBloc, state),
+            ),
+            BiocentralStatusIndicator(state: state, center: true),
+            BiocentralSmallButton(
+              label: 'Close',
+              onTap: closeDialog,
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget buildServerTabBar(BiocentralClientBloc biocentralClientBloc, BiocentralClientState state) {
@@ -48,10 +51,12 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: const Center(child: Text('Connect to a Server for Advanced Calculations')),
-          bottom: const TabBar(
+          bottom: TabBar(
+            labelColor: Theme.of(context).colorScheme.onSurface,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
             tabs: [
-              Tab(icon: Icon(Icons.cloud_outlined), text: 'Connect'),
-              Tab(icon: Icon(Icons.file_download_outlined), text: 'Download Local Server'),
+              const Tab(icon: Icon(Icons.cloud_outlined), text: 'Connect'),
+              const Tab(icon: Icon(Icons.file_download_outlined), text: 'Download Local Server'),
             ],
           ),
         ),
@@ -67,10 +72,11 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
       children: [
         const SizedBox(height: 8),
         ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-            onPressed: () => biocentralClientBloc.add(BiocentralClientLoadDataEvent()),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh List'),),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+          onPressed: () => biocentralClientBloc.add(BiocentralClientLoadDataEvent()),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Refresh List'),
+        ),
         const SizedBox(height: 20),
         const Text('Available servers:'),
         const SizedBox(height: 8),
@@ -82,12 +88,12 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
               final BiocentralServerData serverData = state.availableServersToConnect.toList()[index];
               final bool connectedToThisServer = serverData == state.connectedServer;
               return Card(
-                  child: ExpansionTile(
-                      leading: Icon(Icons.circle, color: connectedToThisServer ? Colors.green : Colors.grey),
-                      title: Text(
-                        serverData.name,
-                      ),
-                      children: [
+                child: ExpansionTile(
+                  leading: Icon(Icons.circle, color: connectedToThisServer ? Colors.green : Colors.grey),
+                  title: Text(
+                    serverData.name,
+                  ),
+                  children: [
                     const Text('URL:'),
                     Text(serverData.url),
                     const Text('Available Services on this Server:'),
@@ -101,7 +107,9 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
                         biocentralClientBloc.add(event);
                       },
                     ),
-                  ],),);
+                  ],
+                ),
+              );
             },
           ),
         ),
@@ -127,12 +135,16 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
                 ),
           Expanded(
             child: TabBar(
+              labelColor: Theme.of(context).colorScheme.onSurface,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
               isScrollable: true,
               tabs: state.serverDownloadURLs.keys
-                  .map((os) => Tab(
-                        text: os.capitalize(),
-                        icon: getIconForOS(os),
-                      ),)
+                  .map(
+                    (os) => Tab(
+                      text: os.capitalize(),
+                      icon: getIconForOS(os),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -173,7 +185,10 @@ class _ServerConnectionDialogState extends State<ServerConnectionDialog> {
   }
 
   Widget buildLaunchServer(
-      String? executablePath, BiocentralClientBloc biocentralClientBloc, BiocentralClientState state,) {
+    String? executablePath,
+    BiocentralClientBloc biocentralClientBloc,
+    BiocentralClientState state,
+  ) {
     if (executablePath == null) {
       return Container();
     }

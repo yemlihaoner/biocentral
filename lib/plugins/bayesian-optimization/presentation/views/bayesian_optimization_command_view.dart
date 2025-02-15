@@ -2,6 +2,7 @@ import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/biocentral/presentation/dialogs/welcome_dialog.dart';
 import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/StartBOTrainingDialog.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,7 +23,7 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StartBOTrainingDialog();
+        return const StartBOTrainingDialog();
       },
     );
   }
@@ -35,10 +36,8 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
       commands: [
         BiocentralTooltip(
           message: 'Start new training',
-          child: BiocentralButton(
-            label: 'Start new training',
+          child: BiocentralSimpleButton(
             iconData: Icons.add,
-            requiredServices: const [],
             onTap: () {
               // Add your onTap logic here
               openStartTrainingDialog();
@@ -46,11 +45,9 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
           ),
         ),
         BiocentralTooltip(
-          message: "Add new experimental data",
-          child: BiocentralButton(
-            label: "Add new experimental data",
+          message: 'Add new experimental data',
+          child: BiocentralSimpleButton(
             iconData: Icons.model_training,
-            requiredServices: const [],
             onTap: () {
               // Add your onTap logic here
             },

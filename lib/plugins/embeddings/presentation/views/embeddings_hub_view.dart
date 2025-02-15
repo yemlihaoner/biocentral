@@ -13,7 +13,6 @@ class EmbeddingsHubView extends StatefulWidget {
 }
 
 class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKeepAliveClientMixin {
-
   @override
   bool get wantKeepAlive => true;
 
@@ -32,17 +31,16 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
                 // Custom AppBar
                 Container(
                   padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-                  color: Theme.of(context).primaryColor,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Embeddings Hub',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -50,15 +48,27 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: buildEmbedderSelection(embeddingsHubBloc, state)),
-                          Expanded(child: buildEmbeddingsTypeSelection(embeddingsHubBloc, state)),
+                          Expanded(
+                            child: buildEmbedderSelection(
+                              embeddingsHubBloc,
+                              state,
+                            ),
+                          ),
+                          Expanded(
+                            child: buildEmbeddingsTypeSelection(
+                              embeddingsHubBloc,
+                              state,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const TabBar(
+                      TabBar(
+                        labelColor: Theme.of(context).colorScheme.onSurface,
+                        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
                         tabs: [
-                          Tab(icon: Icon(Icons.zoom_in), text: 'Details'),
-                          Tab(icon: Icon(Icons.visibility), text: 'Visualizations'),
+                          const Tab(icon: Icon(Icons.zoom_in), text: 'Details'),
+                          const Tab(icon: Icon(Icons.visibility), text: 'Visualizations'),
                         ],
                       ),
                     ],
@@ -81,17 +91,26 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
     );
   }
 
-  Widget buildEmbeddingDetailView(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildEmbeddingDetailView(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 8,),
+          const SizedBox(
+            height: 8,
+          ),
           Flexible(child: buildEntityIDSelection(embeddingsHubBloc, state)),
-          const SizedBox(height: 8,),
+          const SizedBox(
+            height: 8,
+          ),
           Flexible(child: buildSingleEmbedding(embeddingsHubBloc, state)),
-          const SizedBox(height: 8,),
+          const SizedBox(
+            height: 8,
+          ),
           Flexible(child: buildBasicEmbeddingStats(embeddingsHubBloc, state)),
         ],
       ),
@@ -99,60 +118,86 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
   }
 
   Widget buildEntityTypeSelection(EmbeddingsHubBloc embeddingsHubBloc) {
-    return BiocentralEntityTypeSelection(onChangedCallback: (selectedType) {
-      embeddingsHubBloc.add(EmbeddingsHubLoadEvent(selectedType));
-    },);
+    return BiocentralEntityTypeSelection(
+      onChangedCallback: (selectedType) {
+        embeddingsHubBloc.add(EmbeddingsHubLoadEvent(selectedType));
+      },
+    );
   }
 
-  Widget buildEmbedderSelection(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildEmbedderSelection(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.embeddingsColumnWizard == null || state.embeddingsColumnWizard!.getAllEmbedderNames().isEmpty) {
       return const Text('Could not find any embeddings!');
     }
     return BiocentralDropdownMenu<String>(
-        dropdownMenuEntries: state.embeddingsColumnWizard!
-            .getAllEmbedderNames()
-            .map((embedderName) => DropdownMenuEntry(value: embedderName, label: embedderName))
-            .toList(),
-        label: const Text('Select embedder..'),
-        onSelected: (String? embedderName) {
-          embeddingsHubBloc.add(EmbeddingsHubSelectEmbedderEvent(embedderName));
-        },);
+      dropdownMenuEntries: state.embeddingsColumnWizard!
+          .getAllEmbedderNames()
+          .map(
+            (embedderName) => DropdownMenuEntry(value: embedderName, label: embedderName),
+          )
+          .toList(),
+      label: const Text('Select embedder..'),
+      onSelected: (String? embedderName) {
+        embeddingsHubBloc.add(EmbeddingsHubSelectEmbedderEvent(embedderName));
+      },
+    );
   }
 
-  Widget buildEmbeddingsTypeSelection(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildEmbeddingsTypeSelection(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.embeddingsColumnWizard == null ||
         state.embeddingsColumnWizard!.getAllEmbedderNames().isEmpty ||
         state.selectedEmbedderName == null) {
       return Container();
     }
     return BiocentralDropdownMenu<EmbeddingType>(
-        dropdownMenuEntries: state.embeddingsColumnWizard!
-            .getAvailableEmbeddingTypesForEmbedder(state.selectedEmbedderName!)
-            .map((embeddingType) => DropdownMenuEntry(value: embeddingType, label: embeddingType.name))
-            .toList(),
-        label: const Text('Select embedding type..'),
-        onSelected: (EmbeddingType? embeddingType) {
-          embeddingsHubBloc.add(EmbeddingsHubSelectEmbeddingTypeEvent(embeddingType));
-        },);
+      dropdownMenuEntries: state.embeddingsColumnWizard!
+          .getAvailableEmbeddingTypesForEmbedder(state.selectedEmbedderName!)
+          .map(
+            (embeddingType) => DropdownMenuEntry(
+              value: embeddingType,
+              label: embeddingType.name,
+            ),
+          )
+          .toList(),
+      label: const Text('Select embedding type..'),
+      onSelected: (EmbeddingType? embeddingType) {
+        embeddingsHubBloc.add(EmbeddingsHubSelectEmbeddingTypeEvent(embeddingType));
+      },
+    );
   }
 
-  Widget buildEntityIDSelection(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildEntityIDSelection(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.embeddingsColumnWizard == null ||
         state.selectedEmbedderName == null ||
         state.selectedEmbeddingType == null) {
       return Container();
     }
     return BiocentralDropdownMenu<String>(
-        dropdownMenuEntries: state.embeddingsColumnWizard!.valueMap.keys
-            .map((entityID) => DropdownMenuEntry(value: entityID, label: entityID))
-            .toList(),
-        label: const Text('Select embedding to inspect..'),
-        onSelected: (String? entityID) {
-          embeddingsHubBloc.add(EmbeddingsHubSelectEntityIDEvent(entityID));
-        },);
+      dropdownMenuEntries: state.embeddingsColumnWizard!.valueMap.keys
+          .map(
+            (entityID) => DropdownMenuEntry(value: entityID, label: entityID),
+          )
+          .toList(),
+      label: const Text('Select embedding to inspect..'),
+      onSelected: (String? entityID) {
+        embeddingsHubBloc.add(EmbeddingsHubSelectEntityIDEvent(entityID));
+      },
+    );
   }
 
-  Widget buildSingleEmbedding(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildSingleEmbedding(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.embeddingsColumnWizard == null ||
         state.selectedEmbedderName == null ||
         state.selectedEmbeddingType == null ||
@@ -161,7 +206,10 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
       return Container();
     }
     final List<dynamic>? rawEmbeddingValues = state.embeddingsColumnWizard!.valueMap[state.selectedEntityID!]
-        ?.getEmbedding(state.selectedEmbeddingType!, embedderName: state.selectedEmbedderName)
+        ?.getEmbedding(
+          state.selectedEmbeddingType!,
+          embedderName: state.selectedEmbedderName,
+        )
         ?.rawValues();
 
     // TODO Visualizations based on embedding type
@@ -169,17 +217,21 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
       return Text(rawEmbeddingValues.toString());
     }
     return SizedBox(
-        width: SizeConfig.screenWidth(context),
-        height: SizeConfig.screenHeight(context) * 0.1,
-        child: VectorVisualizer(
-          vector: rawEmbeddingValues,
-          name: '${state.selectedEntityID} - PerSequenceEmbedding',
-          // TODO Remove -1 in the future once visualization is improved
-          decimalPlaces: Constants.maxDoublePrecision - 1,
-        ),);
+      width: SizeConfig.screenWidth(context),
+      height: SizeConfig.screenHeight(context) * 0.1,
+      child: VectorVisualizer(
+        vector: rawEmbeddingValues,
+        name: '${state.selectedEntityID} - PerSequenceEmbedding',
+        // TODO Remove -1 in the future once visualization is improved
+        decimalPlaces: Constants.maxDoublePrecision - 1,
+      ),
+    );
   }
 
-  Widget buildBasicEmbeddingStats(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildBasicEmbeddingStats(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.embeddingsColumnWizard == null ||
         state.selectedEmbedderName == null ||
         state.selectedEmbeddingType == null) {
@@ -187,9 +239,12 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
     }
 
     return FutureBuilder(
-      future: state.embeddingsColumnWizard!.getEmbeddingStats(state.selectedEmbedderName!, state.selectedEmbeddingType!),
+      future: state.embeddingsColumnWizard!.getEmbeddingStats(
+        state.selectedEmbedderName!,
+        state.selectedEmbeddingType!,
+      ),
       builder: (context, snapshot) {
-        if(snapshot.hasData && snapshot.data != null) {
+        if (snapshot.hasData && snapshot.data != null) {
           final embeddingStats = snapshot.data!;
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -197,14 +252,15 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                    width: SizeConfig.screenWidth(context),
-                    height: SizeConfig.screenHeight(context) * 0.1,
-                    child: VectorVisualizer(
-                      vector: embeddingStats.mean.toList(),
-                      name: 'Mean over all ${embeddingStats.numberOfEmbeddings} embeddings',
-                      // TODO Remove -1 in the future once visualization is improved
-                      decimalPlaces: Constants.maxDoublePrecision - 1,
-                    ),),
+                  width: SizeConfig.screenWidth(context),
+                  height: SizeConfig.screenHeight(context) * 0.1,
+                  child: VectorVisualizer(
+                    vector: embeddingStats.mean.toList(),
+                    name: 'Mean over all ${embeddingStats.numberOfEmbeddings} embeddings',
+                    // TODO Remove -1 in the future once visualization is improved
+                    decimalPlaces: Constants.maxDoublePrecision - 1,
+                  ),
+                ),
               ),
             ],
           );
@@ -214,7 +270,10 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
     );
   }
 
-  Widget buildUMAPs(EmbeddingsHubBloc embeddingsHubBloc, EmbeddingsHubState state) {
+  Widget buildUMAPs(
+    EmbeddingsHubBloc embeddingsHubBloc,
+    EmbeddingsHubState state,
+  ) {
     if (state.umapData == null) {
       return Container();
     }
@@ -222,19 +281,23 @@ class _EmbeddingsHubViewState extends State<EmbeddingsHubView> with AutomaticKee
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: SingleChildScrollView(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: state.umapData!.entries
-                .map((MapEntry<UMAPData, List<Map<String, String>>> mapEntry) => SizedBox(
-                    width: SizeConfig.screenWidth(context) * 0.4,
-                    height: SizeConfig.screenHeight(context) * 0.4,
-                    child: UmapVisualizer(
-                      umapData: mapEntry.key,
-                      pointData: mapEntry.value,
-                      pointIdentifierKey: 'id',
-                    ),),)
-                .toList(),
-          ),),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: state.umapData!.entries
+              .map(
+                (MapEntry<UMAPData, List<Map<String, String>>> mapEntry) => SizedBox(
+                  width: SizeConfig.screenWidth(context) * 0.4,
+                  height: SizeConfig.screenHeight(context) * 0.4,
+                  child: UmapVisualizer(
+                    umapData: mapEntry.key,
+                    pointData: mapEntry.value,
+                    pointIdentifierKey: 'id',
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }
@@ -247,7 +310,9 @@ class VectorVisualizer extends StatelessWidget {
   final double cellHeight;
 
   const VectorVisualizer({
-    required this.vector, required this.name, super.key,
+    required this.vector,
+    required this.name,
+    super.key,
     this.decimalPlaces = 4,
     this.cellWidth = 60,
     this.cellHeight = 60,
@@ -296,7 +361,12 @@ class VectorElement extends StatelessWidget {
   final double height;
 
   const VectorElement({
-    required this.index, required this.value, required this.decimalPlaces, required this.width, required this.height, super.key,
+    required this.index,
+    required this.value,
+    required this.decimalPlaces,
+    required this.width,
+    required this.height,
+    super.key,
   });
 
   @override
@@ -315,13 +385,21 @@ class VectorElement extends StatelessWidget {
         children: [
           Text(
             '[$index]',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value.toStringAsFixed(decimalPlaces),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
         ],
       ),

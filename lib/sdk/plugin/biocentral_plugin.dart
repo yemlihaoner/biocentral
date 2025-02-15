@@ -11,7 +11,6 @@ import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/util/size_config.dart';
 
-
 abstract class BiocentralPlugin with TypeNameMixin {
   final EventBus eventBus;
 
@@ -34,41 +33,54 @@ abstract class BiocentralPlugin with TypeNameMixin {
 
   List<BlocProvider> getListeningBlocs(BuildContext context);
 
-  BiocentralClientRepository getBiocentralClientRepository(BuildContext context) {
+  BiocentralClientRepository getBiocentralClientRepository(
+    BuildContext context,
+  ) {
     return context.read<BiocentralClientRepository>();
   }
 
-  BiocentralProjectRepository getBiocentralProjectRepository(BuildContext context) {
+  BiocentralProjectRepository getBiocentralProjectRepository(
+    BuildContext context,
+  ) {
     return context.read<BiocentralProjectRepository>();
   }
 
-  BiocentralDatabaseRepository getBiocentralDatabaseRepository(BuildContext context) {
+  BiocentralDatabaseRepository getBiocentralDatabaseRepository(
+    BuildContext context,
+  ) {
     return context.read<BiocentralDatabaseRepository>();
   }
 
-  BiocentralColumnWizardRepository getBiocentralColumnWizardRepository(BuildContext context) {
+  BiocentralColumnWizardRepository getBiocentralColumnWizardRepository(
+    BuildContext context,
+  ) {
     return context.read<BiocentralColumnWizardRepository>();
   }
 
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: getListeningBlocs(context),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Flexible(
-          flex: 4,
-          child: getCommandView(context),
-        ),
-        Expanded(
-          flex: 14,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          getCommandView(context),
+          Expanded(
             child: Container(
-                padding: EdgeInsets.symmetric(horizontal: SizeConfig.safeBlockHorizontal(context) * 0.75, vertical: 1),
-                child: getScreenView(context),),),
-      ],),
+              padding: EdgeInsets.symmetric(
+                horizontal: SizeConfig.safeBlockHorizontal(context) * 0.75,
+                vertical: 1,
+              ),
+              child: getScreenView(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-mixin BiocentralClientPluginMixin<T extends BiocentralClient> on BiocentralPlugin {
+mixin BiocentralClientPluginMixin<T extends BiocentralClient>
+    on BiocentralPlugin {
   BiocentralClientFactory<T> createClientFactory();
 }
 
@@ -93,7 +105,8 @@ mixin BiocentralDatabasePluginMixin<T> on BiocentralPlugin {
 }
 
 mixin BiocentralColumnWizardPluginMixin on BiocentralPlugin {
-  Map<ColumnWizardFactory, Widget Function(ColumnWizard)?> createColumnWizardFactories();
+  Map<ColumnWizardFactory, Widget Function(ColumnWizard)?>
+      createColumnWizardFactories();
 }
 
 mixin BiocentralTutorialPluginMixin on BiocentralPlugin {

@@ -1,5 +1,6 @@
 import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -26,31 +27,37 @@ class _EmbeddingsCommandViewState extends State<EmbeddingsCommandView> {
 
   void openCalculateEmbeddingsDialog(EmbeddingsCommandBloc embeddingsCommandBloc) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return BlocProvider(
-            create: (context) => CalculateEmbeddingsDialogBloc(),
-            child: CalculateEmbeddingsDialog(calculateEmbeddingsCallback:
+      context: context,
+      builder: (BuildContext context) {
+        return BlocProvider(
+          create: (context) => CalculateEmbeddingsDialogBloc(),
+          child: CalculateEmbeddingsDialog(
+            calculateEmbeddingsCallback:
                 (PredefinedEmbedder predefinedEmbedder, EmbeddingType embeddingType, DatabaseImportMode importMode) {
               embeddingsCommandBloc
                   .add(EmbeddingsCommandCalculateEmbeddingsEvent(predefinedEmbedder, embeddingType, importMode));
-            },),
-          );
-        },);
+            },
+          ),
+        );
+      },
+    );
   }
 
   void openCalculateUMAPDialog(EmbeddingsCommandBloc embeddingsCommandBloc) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return BlocProvider(
-            create: (context) => CalculateUMAPDialogBloc(context.read<EmbeddingsRepository>()),
-            child: CalculateUMAPDialog(calculateUMAPCallback:
+      context: context,
+      builder: (BuildContext context) {
+        return BlocProvider(
+          create: (context) => CalculateUMAPDialogBloc(context.read<EmbeddingsRepository>()),
+          child: CalculateUMAPDialog(
+            calculateUMAPCallback:
                 (String embedderName, List<PerSequenceEmbedding> embeddings, DatabaseImportMode importMode) {
               embeddingsCommandBloc.add(EmbeddingsCommandCalculateUMAPEvent(embedderName, embeddings, importMode));
-            },),
-          );
-        },);
+            },
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -60,19 +67,19 @@ class _EmbeddingsCommandViewState extends State<EmbeddingsCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Get meaningful representations for your data',
-          child: BiocentralButton(
-              label: 'Calculate embeddings..',
-              iconData: Icons.calculate,
-              requiredServices: const ['embeddings_service'],
-              onTap: () => openCalculateEmbeddingsDialog(embeddingsCommandBloc),),
+          child: BiocentralSimpleButton(
+            iconData: Icons.calculate,
+            requiredServices: const ['embeddings_service'],
+            onTap: () => openCalculateEmbeddingsDialog(embeddingsCommandBloc),
+          ),
         ),
         BiocentralTooltip(
           message: 'Perform UMAP dimensionality reduction on your embeddings',
-          child: BiocentralButton(
-              label: 'Calculate UMAP..',
-              iconData: Icons.auto_graph,
-              requiredServices: const ['embeddings_service'],
-              onTap: () => openCalculateUMAPDialog(embeddingsCommandBloc),),
+          child: BiocentralSimpleButton(
+            iconData: Icons.auto_graph,
+            requiredServices: const ['embeddings_service'],
+            onTap: () => openCalculateUMAPDialog(embeddingsCommandBloc),
+          ),
         ),
       ],
     );

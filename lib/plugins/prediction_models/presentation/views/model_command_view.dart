@@ -1,4 +1,5 @@
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,37 +30,45 @@ class _ModelCommandViewState extends State<ModelCommandView> {
 
   void openLoadModelDialog() {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return BlocProvider(
-            create: (context) => LoadModelDialogBloc(context.read<PredictionModelRepository>(),
-                context.read<BiocentralProjectRepository>(), widget.eventBus,),
-            child: const LoadModelDialog(),
-          );
-        },);
+      context: context,
+      builder: (BuildContext context) {
+        return BlocProvider(
+          create: (context) => LoadModelDialogBloc(
+            context.read<PredictionModelRepository>(),
+            context.read<BiocentralProjectRepository>(),
+            widget.eventBus,
+          ),
+          child: const LoadModelDialog(),
+        );
+      },
+    );
   }
 
   void openBiotrainerConfigDialog() {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return BlocProvider(
-            create: (context) => BiotrainerConfigBloc(context.read<BiocentralDatabaseRepository>(),
-                context.read<BiocentralClientRepository>().getServiceClient<PredictionModelsClient>(),),
-            child: BiotrainerConfigDialog(eventBus: widget.eventBus),
-          );
-        },);
+      context: context,
+      builder: (BuildContext context) {
+        return BlocProvider(
+          create: (context) => BiotrainerConfigBloc(
+            context.read<BiocentralDatabaseRepository>(),
+            context.read<BiocentralClientRepository>().getServiceClient<PredictionModelsClient>(),
+          ),
+          child: BiotrainerConfigDialog(eventBus: widget.eventBus),
+        );
+      },
+    );
   }
 
   void openGenerateSetsDialog() {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return BlocProvider(
-            create: (context) => SetGenerationDialogBloc(context.read<BiocentralDatabaseRepository>(), widget.eventBus),
-            child: const SetGenerationDialog(),
-          );
-        },);
+      context: context,
+      builder: (BuildContext context) {
+        return BlocProvider(
+          create: (context) => SetGenerationDialogBloc(context.read<BiocentralDatabaseRepository>(), widget.eventBus),
+          child: const SetGenerationDialog(),
+        );
+      },
+    );
   }
 
   @override
@@ -68,25 +77,25 @@ class _ModelCommandViewState extends State<ModelCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Load an existing model into biocentral from file',
-          child: BiocentralButton(
-              label: 'Load a model from files..',
-              iconData: Icons.file_open,
-              onTap: openLoadModelDialog,),
+          child: BiocentralSimpleButton(
+            iconData: Icons.file_open,
+            onTap: openLoadModelDialog,
+          ),
         ),
         BiocentralTooltip(
           message: 'Train a new model on your dataset',
-          child: BiocentralButton(
-              label: 'Train a model..',
-              iconData: Icons.model_training,
-              requiredServices: const ['prediction_models_service'],
-              onTap: openBiotrainerConfigDialog,),
+          child: BiocentralSimpleButton(
+            iconData: Icons.model_training,
+            requiredServices: const ['prediction_models_service'],
+            onTap: openBiotrainerConfigDialog,
+          ),
         ),
         BiocentralTooltip(
           message: 'Generate new dataset splits for cross validation',
-          child: BiocentralButton(
-              label: 'Generate sets..',
-              iconData: Icons.splitscreen_outlined,
-              onTap: openGenerateSetsDialog,),
+          child: BiocentralSimpleButton(
+            iconData: Icons.splitscreen_outlined,
+            onTap: openGenerateSetsDialog,
+          ),
         ),
       ],
     );
