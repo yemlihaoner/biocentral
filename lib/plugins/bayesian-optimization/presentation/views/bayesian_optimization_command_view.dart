@@ -1,11 +1,10 @@
-import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_bloc.dart';
-import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/start_bayesian_optimization_dialog.dart';
-import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../embeddings/data/predefined_embedders.dart';
+import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_bloc.dart';
+import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/start_bayesian_optimization_dialog.dart';
+import 'package:biocentral/plugins/embeddings/data/predefined_embedders.dart';
+import 'package:biocentral/sdk/biocentral_sdk.dart';
 
 class BayesianOptimizationCommandView extends StatefulWidget {
   const BayesianOptimizationCommandView({super.key});
@@ -66,7 +65,7 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
       commands: [
         BiocentralTooltip(
           message: 'Start new training',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.add,
             onTap: () {
               openStartTrainingDialog(context);
@@ -75,7 +74,7 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
         ),
         BiocentralTooltip(
           message: 'Add new experimental data',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.model_training,
             onTap: () {
               // Add your onTap logic here

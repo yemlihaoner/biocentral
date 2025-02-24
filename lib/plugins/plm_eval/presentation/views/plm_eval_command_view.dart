@@ -1,11 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:biocentral/plugins/plm_eval/bloc/plm_eval_command_bloc.dart';
 import 'package:biocentral/plugins/plm_eval/bloc/plm_selection_dialog_bloc.dart';
 import 'package:biocentral/plugins/plm_eval/model/benchmark_dataset.dart';
 import 'package:biocentral/plugins/plm_eval/presentation/dialogs/plm_selection_dialog.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class PLMEvalCommandView extends StatefulWidget {
   const PLMEvalCommandView({super.key});
@@ -44,7 +44,7 @@ class _PLMEvalCommandViewState extends State<PLMEvalCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Evaluate a protein language model against benchmarks',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             requiredServices: const ['plm_eval_service'],
             iconData: Icons.fact_check_outlined,
             onTap: openSelectPLMDialog,

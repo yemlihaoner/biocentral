@@ -1,15 +1,14 @@
-import 'package:biocentral/biocentral/bloc/biocentral_plugins_bloc.dart';
-import 'package:biocentral/biocentral/bloc/wiki_bloc.dart';
-import 'package:biocentral/biocentral/presentation/dialogs/server_connection_dialog.dart';
-import 'package:biocentral/biocentral/presentation/dialogs/wiki_dialog.dart';
-import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:biocentral/biocentral/bloc/biocentral_plugins_bloc.dart';
+import 'package:biocentral/biocentral/bloc/wiki_bloc.dart';
 import 'package:biocentral/biocentral/presentation/dialogs/info_dialog.dart';
 import 'package:biocentral/biocentral/presentation/dialogs/plugin_dialog.dart';
+import 'package:biocentral/biocentral/presentation/dialogs/server_connection_dialog.dart';
 import 'package:biocentral/biocentral/presentation/dialogs/welcome_dialog.dart';
+import 'package:biocentral/biocentral/presentation/dialogs/wiki_dialog.dart';
+import 'package:biocentral/sdk/biocentral_sdk.dart';
 
 class BiocentralCommandView extends StatefulWidget {
   const BiocentralCommandView({super.key});
@@ -88,35 +87,35 @@ class _BiocentralCommandViewState extends State<BiocentralCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Connect to a server app for high-performance calculations',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.cast_connected,
             onTap: openServerConnectionDialog,
           ),
         ),
         BiocentralTooltip(
           message: 'Read documentation and complete tutorials',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.lightbulb,
             onTap: openWikiDialog,
           ),
         ),
         BiocentralTooltip(
           message: 'Select the plugins you want to work with',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.plumbing,
             onTap: openPluginDialog,
           ),
         ),
         BiocentralTooltip(
           message: 'Show app information',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.info_outline,
             onTap: openInfoDialog,
           ),
         ),
         BiocentralTooltip(
           message: 'Show welcome dialog',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.help_center,
             onTap: openWelcomeDialog,
           ),

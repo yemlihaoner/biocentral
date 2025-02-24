@@ -1,5 +1,3 @@
-import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:biocentral/sdk/presentation/widgets/biocentral_simple_button.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +10,7 @@ import 'package:biocentral/plugins/prediction_models/domain/prediction_model_rep
 import 'package:biocentral/plugins/prediction_models/presentation/dialogs/biotrainer_config_dialog.dart';
 import 'package:biocentral/plugins/prediction_models/presentation/dialogs/load_model_dialog.dart';
 import 'package:biocentral/plugins/prediction_models/presentation/dialogs/set_generation_dialog.dart';
+import 'package:biocentral/sdk/biocentral_sdk.dart';
 
 class ModelCommandView extends StatefulWidget {
   final EventBus eventBus;
@@ -77,14 +76,14 @@ class _ModelCommandViewState extends State<ModelCommandView> {
       commands: [
         BiocentralTooltip(
           message: 'Load an existing model into biocentral from file',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.file_open,
             onTap: openLoadModelDialog,
           ),
         ),
         BiocentralTooltip(
           message: 'Train a new model on your dataset',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.model_training,
             requiredServices: const ['prediction_models_service'],
             onTap: openBiotrainerConfigDialog,
@@ -92,7 +91,7 @@ class _ModelCommandViewState extends State<ModelCommandView> {
         ),
         BiocentralTooltip(
           message: 'Generate new dataset splits for cross validation',
-          child: BiocentralSimpleButton(
+          child: BiocentralButton(
             iconData: Icons.splitscreen_outlined,
             onTap: openGenerateSetsDialog,
           ),
