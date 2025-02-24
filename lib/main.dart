@@ -4,9 +4,12 @@ import 'package:biocentral/biocentral/presentation/views/biocentral_main_view.da
 import 'package:biocentral/biocentral/presentation/views/start_page_view.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
+import 'package:biocentral/sdk/bloc/theme/theme_bloc.dart';
+import 'package:biocentral/sdk/bloc/theme/theme_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_system/tutorial_system.dart';
 
 void main() async {
@@ -46,10 +49,20 @@ class BiocentralApp extends StatefulWidget {
 class _BiocentralAppState extends State<BiocentralApp> {
   final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
   BiocentralClientRepository? oldClientRepository;
+  bool _isInitialized = false;
+  late SharedPreferences prefs;
 
   @override
   void initState() {
     super.initState();
+    _initializePreferences();
+  }
+
+  Future<void> _initializePreferences() async {
+    prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isInitialized = true;
+    });
   }
 
   /// Creates global repositories that are available to all plugins
@@ -94,8 +107,25 @@ class _BiocentralAppState extends State<BiocentralApp> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<BiocentralPluginBloc>(
-      create: (context) => BiocentralPluginBloc(widget.pluginManager),
+    if (!_isInitialized) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<BiocentralPluginBloc>(
+          create: (context) => BiocentralPluginBloc(widget.pluginManager),
+        ),
+        BlocProvider<ThemeBloc>(
+          create: (context) => ThemeBloc(prefs: prefs),
+        ),
+      ],
       child: BlocBuilder<BiocentralPluginBloc, BiocentralPluginState>(
         buildWhen: (sOld, sNew) =>
             sOld.status == BiocentralPluginStatus.loading && sNew.status == BiocentralPluginStatus.loaded,
@@ -104,11 +134,15 @@ class _BiocentralAppState extends State<BiocentralApp> {
             ...getGlobalRepositoryProviders(context, pluginState.pluginManager),
             ...pluginState.pluginManager.getPluginRepositories(),
           ],
-          child: MaterialApp(
-            navigatorKey: globalNavigatorKey,
-            title: 'Biocentral',
-            theme: BiocentralStyle.darkTheme,
-            home: buildHome(pluginState),
+          child: BlocBuilder<ThemeBloc, ThemeState>(
+            builder: (context, themeState) {
+              return MaterialApp(
+                navigatorKey: globalNavigatorKey,
+                title: 'Biocentral',
+                theme: themeState.isDarkMode ? BiocentralStyle.darkTheme : BiocentralStyle.lightTheme,
+                home: buildHome(pluginState),
+              );
+            },
           ),
         ),
       ),
