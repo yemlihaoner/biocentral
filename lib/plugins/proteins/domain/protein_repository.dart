@@ -188,12 +188,21 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
   // }
 
   bool _isNumeric(String value) {
+    // Strict numeric validation - only accept strings that represent numbers
+    // Trim to handle any leading/trailing whitespace
+    value = value.trim();
+
+    // Empty strings aren't numeric
+    if (value.isEmpty) return false;
+
+    // Try parsing as number - handles integers and decimals
     return num.tryParse(value) != null;
   }
 
   bool _isBoolean(String value) {
-    value = value.toLowerCase();
-    return value == "true" || value == "false" || value == "1" || value == "0";
+    // Accept exact boolean values (case-insensitive) and 0/1 values
+    value = value.trim().toLowerCase();
+    return value == "true" || value == "false" || value == "0" || value == "1";
   }
 
   Map<String, String> getColumnDatatypesMap() {
@@ -202,34 +211,65 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
     final Map<String, String> datatypes = {};
     final columnNames = getColumnNames();
 
-    // First pass: initialize with most restrictive type possible
-    for (var column in columnNames) {
-      if (column == "id" ||
-          column == "sequence" ||
-          column == "taxonomyID" ||
-          column == "embeddings") {
-        datatypes[column] = "other";
-        continue;
-      }
+    // System columns we don't analyze
+    final systemColumns = {"id", "sequence", "taxonomyID", "embeddings"};
 
-      datatypes[column] = "numeric"; // Start with most restrictive
+    // First pass: Set initial type to "other" for all columns
+    for (var column in columnNames) {
+      datatypes[column] = "other";
     }
 
-    // Second pass: downgrade types as needed based on actual values
-    for (var protein in _proteins.values) {
-      final attributes = protein.attributes.toMap();
+    // For each column, check if ALL non-null, non-Unknown values are of the same type
+    for (var column in columnNames) {
+      if (systemColumns.contains(column)) continue;
 
-      for (var column in columnNames) {
-        if (datatypes[column] == "other") continue;
+      bool allValuesAreNumeric = true;
+      bool allValuesAreBoolean = true;
+      bool hasAtLeastOneValue = false;
+      bool onlyZeroAndOne = true; // Track if values are only 0 and 1
 
-        final value = attributes[column]?.toString();
-        if (value == null || value == "Unknown") continue;
+      // Check all proteins for this column
+      for (var protein in _proteins.values) {
+        final attributeValue = protein.attributes.toMap()[column]?.toString();
 
-        if (datatypes[column] == "numeric" && !_isNumeric(value)) {
-          datatypes[column] = _isBoolean(value) ? "boolean" : "other";
-        } else if (datatypes[column] == "boolean" && !_isBoolean(value)) {
-          datatypes[column] = "other";
+        // Skip null or "Unknown" values - these are fine
+        if (attributeValue == null || attributeValue == "Unknown") continue;
+
+        hasAtLeastOneValue = true;
+
+        // Check numeric
+        if (allValuesAreNumeric && !_isNumeric(attributeValue)) {
+          allValuesAreNumeric = false;
         }
+
+        // Check boolean
+        if (allValuesAreBoolean && !_isBoolean(attributeValue)) {
+          allValuesAreBoolean = false;
+        }
+
+        // Check if value is anything other than 0 or 1
+        if (onlyZeroAndOne &&
+            attributeValue.trim() != "0" &&
+            attributeValue.trim() != "1") {
+          onlyZeroAndOne = false;
+        }
+
+        // Early exit if we've ruled out all type possibilities
+        if (!allValuesAreNumeric && !allValuesAreBoolean) {
+          // But if we have only 0s and 1s so far, keep checking
+          if (!onlyZeroAndOne) break;
+        }
+      }
+
+      // Assign types based on collected data
+      if (hasAtLeastOneValue) {
+        if (allValuesAreBoolean || onlyZeroAndOne) {
+          // If all values are 0/1 or true/false, consider it boolean
+          datatypes[column] = "boolean";
+        } else if (allValuesAreNumeric) {
+          datatypes[column] = "numeric";
+        }
+        // Otherwise, it remains "other"
       }
     }
 
