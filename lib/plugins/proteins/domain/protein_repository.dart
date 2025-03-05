@@ -178,14 +178,4 @@ class ProteinRepository extends BiocentralDatabase<Protein> {
     if (_proteins.isEmpty) return [];
     return _proteins.values.first.toMap().keys.toList();
   }
-
-  // Legacy method kept for backward compatibility
-  // Use the generalized method from BiocentralDatabase instead
-  @Deprecated(
-      'Use getTrainableColumnNames({bool? binaryTypes, bool? numericTypes}) from BiocentralDatabase')
-  List<String> getTrainableColumnNamesByType(
-      [bool? booleanTypes, bool? numericTypes]) {
-    return getTrainableColumnNames(
-        binaryTypes: booleanTypes, numericTypes: numericTypes);
-  }
 }
