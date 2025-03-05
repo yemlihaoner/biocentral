@@ -1,12 +1,11 @@
 import 'dart:convert';
 
 import 'package:bio_flutter/bio_flutter.dart';
-import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
-
+import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
 import 'package:biocentral/sdk/util/logging.dart';
-import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 abstract class BiocentralDatabase<T extends BioEntity> {
   // *** READ/WRITE/UPDATE ***
@@ -32,9 +31,14 @@ abstract class BiocentralDatabase<T extends BioEntity> {
 
   String getEntityTypeName();
 
-  void syncFromDatabase(Map<String, BioEntity> entities, DatabaseImportMode importMode);
+  void syncFromDatabase(
+      Map<String, BioEntity> entities, DatabaseImportMode importMode);
 
   Map<String, T> updateEmbeddings(Map<String, Embedding> newEmbeddings);
+
+  /// Returns a set of column names that should be excluded from training and analysis
+  /// These are typically system columns like ID, embeddings, etc.
+  Set<String> getSystemColumns();
 
   Map<String, Map<String, dynamic>> getColumns() {
     final List<Map<String, dynamic>> entityMaps = entitiesAsMaps();
@@ -52,6 +56,80 @@ abstract class BiocentralDatabase<T extends BioEntity> {
     return result;
   }
 
+  bool isNumeric(Map<String, dynamic> columnValues) {
+    final nonNullValues = columnValues.values
+        .where((value) => value != null && value.toString() != 'Unknown')
+        .toList();
+
+    if (nonNullValues.isEmpty) return false;
+
+    // To prevent the case where 0/1 only is tagged as numeric column
+    return !isBinary(columnValues) &&
+        nonNullValues.every((value) {
+          final String strValue = value.toString().trim();
+          return num.tryParse(strValue) != null;
+        });
+  }
+
+  bool isBinary(Map<String, dynamic> columnValues) {
+    final nonNullValues = columnValues.values
+        .where((value) => value != null && value.toString() != 'Unknown')
+        .map((value) => value.toString().trim())
+        .toSet();
+
+    return nonNullValues.length == 2;
+  }
+
+  /// Get the trainable column names, optionally filtered by type
+  /// A column is trainable if it has at least one null or "Unknown" value
+  ///
+  /// Parameters:
+  /// - [binaryTypes]: If true, only include binary columns
+  /// - [numericTypes]: If true, only include numeric columns
+  /// Add more types here as needed
+  List<String> getTrainableColumnNames(
+      {bool? binaryTypes, bool? numericTypes}) {
+    final Map<String, Map<String, dynamic>> allColumns = getColumns();
+    final Set<String> systemColumns = getSystemColumns();
+
+    int numberOfEntries = 0;
+    if (allColumns.isNotEmpty) {
+      numberOfEntries = allColumns.values
+          .map((valueMap) => valueMap.length)
+          .reduce((max, current) => max > current ? max : current);
+    }
+
+    return allColumns.keys.where((column) {
+      if (systemColumns.contains(column)) return false;
+
+      final Map<String, dynamic> columnValues = allColumns[column] ?? {};
+
+      bool isTrainable = columnValues.length < numberOfEntries ||
+          columnValues.values.any((value) {
+            return value == null ||
+                value.toString() == '' ||
+                value.toString() == 'Unknown';
+          });
+
+      if (!isTrainable) return false;
+
+      if (binaryTypes == null && numericTypes == null) return true;
+
+      bool isColumnBinary = isBinary(columnValues);
+      bool isColumnNumeric = isNumeric(columnValues);
+
+      if (binaryTypes == true && isColumnBinary) return true;
+      if (numericTypes == true && isColumnNumeric) return true;
+
+      if (binaryTypes == false && numericTypes == false) return false;
+
+      if (binaryTypes == true && numericTypes == null) return isColumnBinary;
+      if (numericTypes == true && binaryTypes == null) return isColumnNumeric;
+
+      return false;
+    }).toList();
+  }
+
   Type getType() {
     return T;
   }
@@ -61,7 +139,8 @@ abstract class BiocentralDatabase<T extends BioEntity> {
     return handler.convertToString(databaseToMap()).then((val) => val ?? '');
   }
 
-  Future<Map<String, T>> importEntities(Map<String, T> entities, DatabaseImportMode databaseImportMode) async {
+  Future<Map<String, T>> importEntities(
+      Map<String, T> entities, DatabaseImportMode databaseImportMode) async {
     switch (databaseImportMode) {
       case DatabaseImportMode.overwrite:
         {
@@ -76,7 +155,10 @@ abstract class BiocentralDatabase<T extends BioEntity> {
           for (MapEntry<String, T> entry in entities.entries) {
             final T? existingEntity = getEntityById(entry.key);
             if (existingEntity != null) {
-              updateEntity(existingEntity.getID(), entry.value.merge(existingEntity, failOnConflict: false) as T);
+              updateEntity(
+                  existingEntity.getID(),
+                  entry.value.merge(existingEntity, failOnConflict: false)
+                      as T);
             } else {
               addEntity(entry.value);
             }
@@ -87,8 +169,10 @@ abstract class BiocentralDatabase<T extends BioEntity> {
     return databaseToMap();
   }
 
-  Future<Map<String, T>> importEntitiesFromFile(FileData fileData, DatabaseImportMode databaseImportMode) async {
-    final Map<String, T> loadedEntities = await compute(_loadEntitiesFromFile, fileData);
+  Future<Map<String, T>> importEntitiesFromFile(
+      FileData fileData, DatabaseImportMode databaseImportMode) async {
+    final Map<String, T> loadedEntities =
+        await compute(_loadEntitiesFromFile, fileData);
     return importEntities(loadedEntities, databaseImportMode);
   }
 
@@ -96,9 +180,11 @@ abstract class BiocentralDatabase<T extends BioEntity> {
     try {
       // TODO Add option for consistency check into UI
       // TODO Add different file formats: fileData.extension
-      final handler = BioFileHandler<T>()
-          .create('fasta', config: BioFileHandlerConfig.serialDefaultConfig().copyWith(checkFileConsistency: false));
-      final Map<String, T>? entitiesFromFastaFile = await handler.readFromString(fileData.content, fileName: fileData.name);
+      final handler = BioFileHandler<T>().create('fasta',
+          config: BioFileHandlerConfig.serialDefaultConfig()
+              .copyWith(checkFileConsistency: false));
+      final Map<String, T>? entitiesFromFastaFile = await handler
+          .readFromString(fileData.content, fileName: fileData.name);
       if (entitiesFromFastaFile == null) {
         logger.e('Error loading entities from file: no values returned!');
         return {};
@@ -110,18 +196,20 @@ abstract class BiocentralDatabase<T extends BioEntity> {
     }
   }
 
-  Future<Map<String, T>> handleColumnWizardOperationResult(ColumnWizardOperationResult? operationResult) async {
+  Future<Map<String, T>> handleColumnWizardOperationResult(
+      ColumnWizardOperationResult? operationResult) async {
     if (operationResult is ColumnWizardAddOperationResult) {
       // TODO ERROR HANDLING
       final String newColumnName = operationResult.newColumnName;
       final Map<String, dynamic> newValues = operationResult.newColumnValues;
-      final Map<String, String> attributeMap =
-          Map.fromEntries(newValues.entries.map((entry) => MapEntry(entry.key, entry.value.toString())));
+      final Map<String, String> attributeMap = Map.fromEntries(newValues.entries
+          .map((entry) => MapEntry(entry.key, entry.value.toString())));
       return addCustomAttribute(newColumnName, attributeMap);
     }
     if (operationResult is ColumnWizardRemoveOperationResult) {
       final List<int> indicesToRemove = operationResult.indicesToRemove;
-      final List<T?> entitiesToRemove = indicesToRemove.map((index) => getEntityByRow(index)).toList();
+      final List<T?> entitiesToRemove =
+          indicesToRemove.map((index) => getEntityByRow(index)).toList();
       for (T? entity in entitiesToRemove) {
         removeEntity(entity);
       }
@@ -141,29 +229,37 @@ abstract class BiocentralDatabase<T extends BioEntity> {
 
   // *** ATTRIBUTES ***
 
-  Future<Map<String, T>> addCustomAttribute(String attributeName, Map<String, dynamic> attributeMap) {
-    final Map<String, CustomAttributes> customAttributes = attributeMap
-        .map((entityID, attributeValue) => MapEntry(entityID, CustomAttributes({attributeName: attributeValue})));
+  Future<Map<String, T>> addCustomAttribute(
+      String attributeName, Map<String, dynamic> attributeMap) {
+    final Map<String, CustomAttributes> customAttributes = attributeMap.map(
+        (entityID, attributeValue) => MapEntry(
+            entityID, CustomAttributes({attributeName: attributeValue})));
     return _updateEntitiesFromCustomAttributes(customAttributes);
   }
 
-  Future<Map<String, T>> importCustomAttributesFromFile(FileData fileData) async {
+  Future<Map<String, T>> importCustomAttributesFromFile(
+      FileData fileData) async {
     final Map<String, CustomAttributes> customAttributes =
-        await _loadCustomAttributesFromFile(fileData.content, fileData.extension);
+        await _loadCustomAttributesFromFile(
+            fileData.content, fileData.extension);
     return _updateEntitiesFromCustomAttributes(customAttributes);
   }
 
-  Future<Map<String, T>> _updateEntitiesFromCustomAttributes(Map<String, CustomAttributes>? customAttributes) async {
+  Future<Map<String, T>> _updateEntitiesFromCustomAttributes(
+      Map<String, CustomAttributes>? customAttributes) async {
     if (customAttributes == null) {
       return databaseToMap();
     }
     int numberUnknownEntities = 0;
-    for (MapEntry<String, CustomAttributes> entityIDToAttributes in customAttributes.entries) {
+    for (MapEntry<String, CustomAttributes> entityIDToAttributes
+        in customAttributes.entries) {
       final T? entityToUpdate = getEntityById(entityIDToAttributes.key);
       if (entityToUpdate != null) {
-        final T entityUpdated = entityToUpdate.updateFromCustomAttributes(entityIDToAttributes.value);
+        final T entityUpdated = entityToUpdate
+            .updateFromCustomAttributes(entityIDToAttributes.value);
         if (entityUpdated.getID() != entityToUpdate.getID()) {
-          logger.e('Changing IDs via custom attributes is not allowed for biological entities!');
+          logger.e(
+              'Changing IDs via custom attributes is not allowed for biological entities!');
           continue;
         }
         updateEntity(entityUpdated.getID(), entityUpdated);
@@ -178,12 +274,16 @@ abstract class BiocentralDatabase<T extends BioEntity> {
   }
 
   static Future<Map<String, CustomAttributes>> _loadCustomAttributesFromFile(
-      String? fileContent, String fileType,) async {
+    String? fileContent,
+    String fileType,
+  ) async {
     try {
       final handler = BioFileHandler<CustomAttributes>().create(fileType);
-      final Map<String, CustomAttributes>? customAttributesFromFile = await handler.readFromString(fileContent);
+      final Map<String, CustomAttributes>? customAttributesFromFile =
+          await handler.readFromString(fileContent);
       if (customAttributesFromFile == null) {
-        logger.e('Error loading custom attributes from file: no values returned!');
+        logger.e(
+            'Error loading custom attributes from file: no values returned!');
         return {};
       }
       return customAttributesFromFile;
@@ -194,24 +294,32 @@ abstract class BiocentralDatabase<T extends BioEntity> {
   }
 
   Set<String> getAllCustomAttributeKeys() {
-    return databaseToList().expand((entity) => entity.getCustomAttributes().keys()).toSet();
+    return databaseToList()
+        .expand((entity) => entity.getCustomAttributes().keys())
+        .toSet();
   }
 
   Set<String> getAvailableAttributesForAllEntities() {
     return _getKeysWhereDataIsAvailableForAllEntries(
-        entitiesAsMaps().expand((element) => element.entries).toList(), databaseToList().length,);
+      entitiesAsMaps().expand((element) => element.entries).toList(),
+      databaseToList().length,
+    );
   }
 
   Set<String> getAvailableSetColumnsForAllEntities() {
     return _getKeysWhereDataIsAvailableForAllEntries(
-        entitiesAsMaps()
-            .expand((element) => element.entries.where((entry) => entry.key.toLowerCase().contains('set')))
-            .toList(),
-        databaseToList().length,);
+      entitiesAsMaps()
+          .expand((element) => element.entries
+              .where((entry) => entry.key.toLowerCase().contains('set')))
+          .toList(),
+      databaseToList().length,
+    );
   }
 
   static Set<String> _getKeysWhereDataIsAvailableForAllEntries(
-      List<MapEntry<String, dynamic>> entries, int repositoryLength,) {
+    List<MapEntry<String, dynamic>> entries,
+    int repositoryLength,
+  ) {
     final Set<String> result = {};
     // category name -> number of occurrences
     final Map<String, int> uniqueMap = {};
@@ -233,7 +341,9 @@ abstract class BiocentralDatabase<T extends BioEntity> {
   }
 
   Map<String, EmbeddingManager> getAllEmbeddings() {
-    return Map.fromEntries(databaseToMap().entries.map((entry) => MapEntry(entry.key, entry.value.getEmbeddings())));
+    return Map.fromEntries(databaseToMap()
+        .entries
+        .map((entry) => MapEntry(entry.key, entry.value.getEmbeddings())));
   }
 }
 

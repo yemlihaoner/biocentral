@@ -251,11 +251,11 @@ class BOTrainingDialogBloc
 
     List<String> filteredFeatures = [];
     if (event.task.contains('highest probability')) {
-      filteredFeatures =
-          biocentralDatabase!.getTrainableColumnNames(true, false);
+      filteredFeatures = biocentralDatabase!
+          .getTrainableColumnNames(binaryTypes: true, numericTypes: false);
     } else if (event.task.contains('optimal values')) {
-      filteredFeatures =
-          biocentralDatabase!.getTrainableColumnNames(false, true);
+      filteredFeatures = biocentralDatabase!
+          .getTrainableColumnNames(binaryTypes: false, numericTypes: true);
     }
 
     emit(state.copyWith(
