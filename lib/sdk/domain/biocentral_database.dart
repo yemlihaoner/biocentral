@@ -87,7 +87,7 @@ abstract class BiocentralDatabase<T extends BioEntity> {
   /// - [binaryTypes]: If true, only include binary columns
   /// - [numericTypes]: If true, only include numeric columns
   /// Add more types here as needed
-  List<String> getTrainableColumnNames(
+  List<String> getPartiallyUnlabeledColumnNames(
       {bool? binaryTypes, bool? numericTypes}) {
     final Map<String, Map<String, dynamic>> allColumns = getColumns();
     final Set<String> systemColumns = getSystemColumns();
