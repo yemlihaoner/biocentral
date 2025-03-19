@@ -1,12 +1,11 @@
 import 'dart:convert';
 
 import 'package:bio_flutter/bio_flutter.dart';
-import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
-
+import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
 import 'package:biocentral/sdk/util/logging.dart';
-import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 abstract class BiocentralDatabase<T extends BioEntity> {
   // *** READ/WRITE/UPDATE ***
@@ -36,6 +35,10 @@ abstract class BiocentralDatabase<T extends BioEntity> {
 
   Map<String, T> updateEmbeddings(Map<String, Embedding> newEmbeddings);
 
+  /// Returns a set of column names that should be excluded from training and analysis
+  /// These are typically system columns like ID, embeddings, etc.
+  Set<String> getSystemColumns();
+
   Map<String, Map<String, dynamic>> getColumns() {
     final List<Map<String, dynamic>> entityMaps = entitiesAsMaps();
     final Map<String, Map<String, dynamic>> result = {};
@@ -50,6 +53,74 @@ abstract class BiocentralDatabase<T extends BioEntity> {
       }
     }
     return result;
+  }
+
+  bool isNumeric(Map<String, dynamic> columnValues) {
+    final nonNullValues = columnValues.values.where((value) => value != null && value.toString() != 'Unknown').toList();
+
+    if (nonNullValues.isEmpty) return false;
+
+    // To prevent the case where 0/1 only is tagged as numeric column
+    return !isBinary(columnValues) &&
+        nonNullValues.every((value) {
+          final String strValue = value.toString().trim();
+          return num.tryParse(strValue) != null;
+        });
+  }
+
+  bool isBinary(Map<String, dynamic> columnValues) {
+    final nonNullValues = columnValues.values
+        .where((value) => value != null && value.toString() != 'Unknown')
+        .map((value) => value.toString().trim())
+        .toSet();
+
+    return nonNullValues.length == 2;
+  }
+
+  /// Get the trainable column names, optionally filtered by type
+  /// A column is trainable if it has at least one null or "Unknown" value
+  ///
+  /// Parameters:
+  /// - [binaryTypes]: If true, only include binary columns
+  /// - [numericTypes]: If true, only include numeric columns
+  /// Add more types here as needed
+  List<String> getPartiallyUnlabeledColumnNames({bool? binaryTypes, bool? numericTypes}) {
+    final Map<String, Map<String, dynamic>> allColumns = getColumns();
+    final Set<String> systemColumns = getSystemColumns();
+
+    int numberOfEntries = 0;
+    if (allColumns.isNotEmpty) {
+      numberOfEntries =
+          allColumns.values.map((valueMap) => valueMap.length).reduce((max, current) => max > current ? max : current);
+    }
+
+    return allColumns.keys.where((column) {
+      if (systemColumns.contains(column)) return false;
+
+      final Map<String, dynamic> columnValues = allColumns[column] ?? {};
+
+      bool isTrainable = columnValues.length < numberOfEntries ||
+          columnValues.values.any((value) {
+            return value == null || value.toString() == '' || value.toString() == 'Unknown';
+          });
+
+      if (!isTrainable) return false;
+
+      if (binaryTypes == null && numericTypes == null) return true;
+
+      bool isColumnBinary = isBinary(columnValues);
+      bool isColumnNumeric = isNumeric(columnValues);
+
+      if (binaryTypes == true && isColumnBinary) return true;
+      if (numericTypes == true && isColumnNumeric) return true;
+
+      if (binaryTypes == false && numericTypes == false) return false;
+
+      if (binaryTypes == true && numericTypes == null) return isColumnBinary;
+      if (numericTypes == true && binaryTypes == null) return isColumnNumeric;
+
+      return false;
+    }).toList();
   }
 
   Type getType() {
@@ -98,7 +169,8 @@ abstract class BiocentralDatabase<T extends BioEntity> {
       // TODO Add different file formats: fileData.extension
       final handler = BioFileHandler<T>()
           .create('fasta', config: BioFileHandlerConfig.serialDefaultConfig().copyWith(checkFileConsistency: false));
-      final Map<String, T>? entitiesFromFastaFile = await handler.readFromString(fileData.content, fileName: fileData.name);
+      final Map<String, T>? entitiesFromFastaFile =
+          await handler.readFromString(fileData.content, fileName: fileData.name);
       if (entitiesFromFastaFile == null) {
         logger.e('Error loading entities from file: no values returned!');
         return {};
@@ -178,7 +250,9 @@ abstract class BiocentralDatabase<T extends BioEntity> {
   }
 
   static Future<Map<String, CustomAttributes>> _loadCustomAttributesFromFile(
-      String? fileContent, String fileType,) async {
+    String? fileContent,
+    String fileType,
+  ) async {
     try {
       final handler = BioFileHandler<CustomAttributes>().create(fileType);
       final Map<String, CustomAttributes>? customAttributesFromFile = await handler.readFromString(fileContent);
@@ -199,19 +273,24 @@ abstract class BiocentralDatabase<T extends BioEntity> {
 
   Set<String> getAvailableAttributesForAllEntities() {
     return _getKeysWhereDataIsAvailableForAllEntries(
-        entitiesAsMaps().expand((element) => element.entries).toList(), databaseToList().length,);
+      entitiesAsMaps().expand((element) => element.entries).toList(),
+      databaseToList().length,
+    );
   }
 
   Set<String> getAvailableSetColumnsForAllEntities() {
     return _getKeysWhereDataIsAvailableForAllEntries(
-        entitiesAsMaps()
-            .expand((element) => element.entries.where((entry) => entry.key.toLowerCase().contains('set')))
-            .toList(),
-        databaseToList().length,);
+      entitiesAsMaps()
+          .expand((element) => element.entries.where((entry) => entry.key.toLowerCase().contains('set')))
+          .toList(),
+      databaseToList().length,
+    );
   }
 
   static Set<String> _getKeysWhereDataIsAvailableForAllEntries(
-      List<MapEntry<String, dynamic>> entries, int repositoryLength,) {
+    List<MapEntry<String, dynamic>> entries,
+    int repositoryLength,
+  ) {
     final Set<String> result = {};
     // category name -> number of occurrences
     final Map<String, int> uniqueMap = {};

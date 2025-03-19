@@ -1,7 +1,6 @@
 import 'package:bio_flutter/bio_flutter.dart';
-import 'package:biocentral/sdk/biocentral_sdk.dart';
-
 import 'package:biocentral/plugins/ppi/model/ppi_database_test.dart';
+import 'package:biocentral/sdk/biocentral_sdk.dart';
 
 class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
   final Map<String, ProteinProteinInteraction> _interactions = {};
@@ -11,12 +10,21 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
 
   PPIRepository() {
     // EXAMPLE DATA
-    final Protein p1 = Protein('P06213', sequence: AminoAcidSequence('MATGGRRGAA'));
-    final Protein p2 = Protein('P11111', sequence: AminoAcidSequence('MAGGRGAA'));
-    final Protein p3 = Protein('P22222', sequence: AminoAcidSequence('MATGGRRGAATTTTTT'));
-    final Protein p4 = Protein('P33333', sequence: AminoAcidSequence('MAGGRGAAMMMMMMAAAAGGGG'));
+    final Protein p1 =
+        Protein('P06213', sequence: AminoAcidSequence('MATGGRRGAA'));
+    final Protein p2 =
+        Protein('P11111', sequence: AminoAcidSequence('MAGGRGAA'));
+    final Protein p3 =
+        Protein('P22222', sequence: AminoAcidSequence('MATGGRRGAATTTTTT'));
+    final Protein p4 = Protein('P33333',
+        sequence: AminoAcidSequence('MAGGRGAAMMMMMMAAAAGGGG'));
     addEntity(ProteinProteinInteraction(p1, p2, true));
     addEntity(ProteinProteinInteraction(p3, p4, false));
+  }
+
+  @override
+  Set<String> getSystemColumns() {
+    return {"id", "sequence", "taxonomyID", "embeddings"};
   }
 
   @override
@@ -62,7 +70,8 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
   @override
   bool containsEntity(String id) {
     final String flippedID = ProteinProteinInteraction.flipInteractionID(id);
-    return _interactions.containsKey(id) || _interactions.containsKey(flippedID);
+    return _interactions.containsKey(id) ||
+        _interactions.containsKey(flippedID);
   }
 
   @override
@@ -77,7 +86,9 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
 
   @override
   List<Map<String, dynamic>> entitiesAsMaps() {
-    return _interactions.values.map((interaction) => interaction.toMap()).toList();
+    return _interactions.values
+        .map((interaction) => interaction.toMap())
+        .toList();
   }
 
   @override
@@ -97,8 +108,10 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
   Future<int> removeDuplicates() async {
     final Set<String> duplicates = {};
     for (String interactionID in _interactionIDs) {
-      final String flippedInteractionID = ProteinProteinInteraction.flipInteractionID(interactionID);
-      if (_interactions.containsKey(flippedInteractionID) && !duplicates.contains(interactionID)) {
+      final String flippedInteractionID =
+          ProteinProteinInteraction.flipInteractionID(interactionID);
+      if (_interactions.containsKey(flippedInteractionID) &&
+          !duplicates.contains(interactionID)) {
         duplicates.add(flippedInteractionID);
       }
     }
@@ -109,7 +122,8 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
     _interactionIDs.addAll(_interactions.keys);
 
     if (duplicates.isNotEmpty) {
-      logger.i('Removed ${duplicates.length} duplicated interactions from interaction database!');
+      logger.i(
+          'Removed ${duplicates.length} duplicated interactions from interaction database!');
     }
     return duplicates.length;
   }
@@ -118,18 +132,24 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
   ///
   /// Interactions that are no longer found because their associated proteins are no longer available are removed
   @override
-  void syncFromDatabase(Map<String, BioEntity> entities, DatabaseImportMode importMode) {
+  void syncFromDatabase(
+      Map<String, BioEntity> entities, DatabaseImportMode importMode) {
     // TODO Improve syncing condition, check for importMode, Future/await?
     if (entities.entries.first.value is Protein) {
-      final Map<String, ProteinProteinInteraction> alignedInteractions = databaseToMap();
-      for (MapEntry<String, ProteinProteinInteraction> interactionEntry in _interactions.entries) {
+      final Map<String, ProteinProteinInteraction> alignedInteractions =
+          databaseToMap();
+      for (MapEntry<String, ProteinProteinInteraction> interactionEntry
+          in _interactions.entries) {
         final String interactor1ID = interactionEntry.value.interactor1.id;
         final String interactor2ID = interactionEntry.value.interactor2.id;
 
         // Both proteins must still be contained in the protein database
-        if (entities.containsKey(interactor1ID) && entities.containsKey(interactor2ID)) {
+        if (entities.containsKey(interactor1ID) &&
+            entities.containsKey(interactor2ID)) {
           alignedInteractions[interactionEntry.key] = interactionEntry.value
-              .copyWith(interactor1: entities[interactor1ID], interactor2: entities[interactor2ID]);
+              .copyWith(
+                  interactor1: entities[interactor1ID],
+                  interactor2: entities[interactor2ID]);
         } else {
           alignedInteractions.remove(interactionEntry.key);
         }
@@ -139,20 +159,24 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
       _interactions.addAll(alignedInteractions);
       _interactionIDs.addAll(alignedInteractions.keys);
     } else if (entities.entries.first.value is ProteinProteinInteraction) {
-      importEntities(entities as Map<String, ProteinProteinInteraction>, importMode);
+      importEntities(
+          entities as Map<String, ProteinProteinInteraction>, importMode);
     }
   }
 
   @override
-  Map<String, ProteinProteinInteraction> updateEmbeddings(Map<String, Embedding> newEmbeddings) {
+  Map<String, ProteinProteinInteraction> updateEmbeddings(
+      Map<String, Embedding> newEmbeddings) {
     // TODO Can be ignored at the moment, because embeddings are calculated directly for interactions
     // TODO see (EmbeddingsCombiner)
     return Map.from(_interactions);
   }
 
   Set<Protein> _getCurrentProteins() {
-    return _interactions.values
-        .fold({}, (previous, interaction) => previous..addAll([interaction.interactor1, interaction.interactor2]));
+    return _interactions.values.fold(
+        {},
+        (previous, interaction) => previous
+          ..addAll([interaction.interactor1, interaction.interactor2]));
   }
 
   /// Check if proteins have missing sequences
@@ -183,6 +207,6 @@ class PPIRepository extends BiocentralDatabase<ProteinProteinInteraction> {
     return associatedDatasetTests;
   }
 
-  List<PPIDatabaseTest> get associatedDatasetTests => List.from(_associatedDatasetTests);
-
+  List<PPIDatabaseTest> get associatedDatasetTests =>
+      List.from(_associatedDatasetTests);
 }
