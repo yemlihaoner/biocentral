@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
 import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 
 class BayesianOptimizationRepository {
+  final BiocentralProjectRepository _projectRepository;
+
+  BayesianOptimizationRepository(this._projectRepository);
+
   BayesianOptimizationTrainingResult? currentResult;
   List<BayesianOptimizationTrainingResult>? previousTrainingResults;
 
@@ -26,17 +30,16 @@ class BayesianOptimizationRepository {
     addPreviousTrainingResults(result);
   }
 
-  void saveCurrentResultIntoCSV(BayesianOptimizationTrainingResult? currentResult) {
-    final String buffer = convertTrainingResultToCSV(currentResult!);
+  Future<void> saveCurrentResultIntoCSV(BayesianOptimizationTrainingResult? currentResult) async {
+    if (currentResult == null) return;
 
-    // For desktop/mobile, use file_picker to save
-    FilePicker.platform.saveFile(
+    final String buffer = convertTrainingResultToCSV(currentResult);
+
+    // Use _handleSave to save the file
+    await _projectRepository.handleExternalSave(
       fileName: 'bayesian_optimization_results.csv',
-      bytes: Uint8List.fromList(buffer.toString().codeUnits),
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
+      contentFunction: () async => buffer,
     );
-    // biocentralProjectRepository.handleSave(fileName: 'bayesian_optimization_results.csv', content: buffer);
   }
 
   BayesianOptimizationTrainingResult convertCSVtoTrainingResult(Uint8List? bytes) {
@@ -50,19 +53,19 @@ class BayesianOptimizationRepository {
       if (row.isEmpty) continue;
 
       final List<String> columns = row.split(',');
-      if (columns.length < 5) continue; // Only need 5 columns now: protein_id, sequence, score, uncertainty, prediction
+      if (columns.length < 5) continue;
 
       try {
         results.add(
           BayesianOptimizationTrainingResultData(
-              proteinId: columns[0],
-              sequence: columns[1],
-              score: double.parse(columns[2]),
-              uncertainty: double.parse(columns[3]),
-              prediction: double.parse(columns[4])),
+            proteinId: columns[0],
+            sequence: columns[1],
+            score: double.parse(columns[2]),
+            uncertainty: double.parse(columns[3]),
+            mean: double.parse(columns[4]),
+          ),
         );
       } catch (e) {
-        // Skip invalid rows
         continue;
       }
     }
@@ -73,12 +76,11 @@ class BayesianOptimizationRepository {
   String convertTrainingResultToCSV(BayesianOptimizationTrainingResult result) {
     final StringBuffer buffer = StringBuffer();
 
-    // Updated header with new fields
-    buffer.writeln('protein_id,sequence,score');
+    buffer.writeln('protein_id,sequence,score,uncertainty,mean');
 
     if (result.results != null) {
       for (final data in result.results!) {
-        buffer.writeln('${data.proteinId},${data.sequence},${data.score}');
+        buffer.writeln('${data.proteinId},${data.sequence},${data.score},${data.uncertainty},${data.mean}');
       }
     }
 

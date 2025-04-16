@@ -31,7 +31,7 @@ class BayesianOptimizationPlugin extends BiocentralPlugin
 
   @override
   BayesianOptimizationRepository createListeningDatabase(BiocentralProjectRepository projectRepository) {
-    final repository = BayesianOptimizationRepository();
+    final repository = BayesianOptimizationRepository(projectRepository);
     return repository;
   }
 

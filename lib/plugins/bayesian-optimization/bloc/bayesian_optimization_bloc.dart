@@ -134,6 +134,13 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
       final String databaseHash = await biocentralDatabase.getHash();
       Map<String, dynamic> config = {
         'database_hash': databaseHash,
+        'optimization_mode': switch (event.optimizationType) {
+          'Maximize' => 'maximize',
+          'Minimize' => 'minimize',
+          'Target Range' => 'interval',
+          'Target Value' => 'value',
+          _ => 'value',
+        },
         'model_type': event.selectedModel?.name,
         // 'selectedEmbedder': event.selectedEmbedder?.name, //TODO: Tell Shuze to add
         'feature': event.selectedFeature.toString(),
