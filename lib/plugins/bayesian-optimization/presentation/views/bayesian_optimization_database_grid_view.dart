@@ -46,7 +46,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     PlutoColumn(
       title: 'Score',
       field: 'score',
-      type: PlutoColumnType.number(defaultValue: -1),
+      type: PlutoColumnType.number(format: '#,###.###'),
       footerRenderer: (rendererContext) {
         return PlutoAggregateColumnFooter(
           rendererContext: rendererContext,
@@ -75,7 +75,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
         return PlutoAggregateColumnFooter(
           rendererContext: rendererContext,
           type: PlutoAggregateColumnType.count,
-          filter: (PlutoCell plutoCell) => plutoCell.value == '',
+          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
           format: '#',
           alignment: Alignment.center,
           titleSpanBuilder: (text) {
@@ -91,8 +91,54 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
         );
       },
     ),
-    //PlutoColumn(title: 'Target', field: 'target', type: PlutoColumnType.text()),
-    //PlutoColumn(title: 'Set', field: 'set', type: PlutoColumnType.text())
+    PlutoColumn(
+      title: 'Uncertainty',
+      field: 'uncertainty',
+      type: PlutoColumnType.number(format: '#,###.###'),
+      footerRenderer: (rendererContext) {
+        return PlutoAggregateColumnFooter(
+          rendererContext: rendererContext,
+          type: PlutoAggregateColumnType.count,
+          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
+          format: '#',
+          alignment: Alignment.center,
+          titleSpanBuilder: (text) {
+            return [
+              const TextSpan(
+                text: 'Missing',
+                style: TextStyle(color: Colors.red),
+              ),
+              const TextSpan(text: ': '),
+              TextSpan(text: text),
+            ];
+          },
+        );
+      },
+    ),
+    PlutoColumn(
+      title: 'Mean',
+      field: 'mean',
+      type: PlutoColumnType.number(format: '#,###.###'),
+      footerRenderer: (rendererContext) {
+        return PlutoAggregateColumnFooter(
+          rendererContext: rendererContext,
+          type: PlutoAggregateColumnType.count,
+          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
+          format: '#',
+          alignment: Alignment.center,
+          titleSpanBuilder: (text) {
+            return [
+              const TextSpan(
+                text: 'Missing',
+                style: TextStyle(color: Colors.red),
+              ),
+              const TextSpan(text: ': '),
+              TextSpan(text: text),
+            ];
+          },
+        );
+      },
+    ),
   ];
 
   PlutoGridStateManager? stateManager;
@@ -145,7 +191,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
           'score': PlutoCell(value: data.score),
           'sequence': PlutoCell(value: data.sequence),
           'uncertainty': PlutoCell(value: data.uncertainty),
-          'mean': PlutoCell(value: data.mean)
+          'mean': PlutoCell(value: data.mean),
         },
       );
 
