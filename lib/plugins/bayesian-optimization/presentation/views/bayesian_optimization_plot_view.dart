@@ -42,7 +42,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
                           reservedSize: 40,
                           getTitlesWidget: (value, meta) {
                             return Text(
-                              value.toString(),
+                              value.toStringAsFixed(4), // Format the value to 2 decimal places
                               style: const TextStyle(
                                 fontSize: 12,
                               ),
@@ -55,10 +55,18 @@ class BayesianOptimizationPlotView extends StatelessWidget {
                           showTitles: true,
                           reservedSize: 40,
                           getTitlesWidget: (value, meta) {
-                            return Text(
-                              value.toString(),
-                              style: const TextStyle(
-                                fontSize: 12,
+                            final int index = value.toInt();
+                            return RotatedBox(
+                              quarterTurns: 3, // Rotate the text 90 degrees clockwise
+                              child: Text(
+                                // Ensure the index is within bounds
+                                index == 0 || index > data!.results!.length
+                                    ? value.toString()
+                                    : data!.results![index - 1].proteinId!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center, // Center-align the text
                               ),
                             );
                           },
@@ -67,8 +75,8 @@ class BayesianOptimizationPlotView extends StatelessWidget {
                     ),
                     gridData: const FlGridData(),
                     scatterSpots: getData(data!),
-                    minX: minMaxValues.getMinX,
-                    maxX: minMaxValues.getMaxX,
+                    minX: 0,
+                    maxX: data!.results!.length.toDouble() + 1,
                     minY: minMaxValues.getMinY,
                     maxY: minMaxValues.getMaxY,
                     borderData: FlBorderData(show: true),
@@ -76,7 +84,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
                       touchTooltipData: ScatterTouchTooltipData(
                         getTooltipItems: (ScatterSpot touchedSpot) {
                           return ScatterTooltipItem(
-                            'Sequence: ${touchedSpot.x.toStringAsFixed(2)}, Score: ${touchedSpot.y.toStringAsFixed(2)}',
+                            'Sequence: ${data!.results![touchedSpot.x.toInt() - 1].proteinId}, Score: ${touchedSpot.y.toStringAsFixed(2)}',
                             textStyle: const TextStyle(color: Colors.white),
                           );
                         },
@@ -151,6 +159,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
     }
 
     // Map the data to ScatterSpot
+    double counterX = 1;
     for (var data in plotData.results!) {
       // Calculate color based on the score's position in the range
       final double scoreRatio = (data.score! - minScore) / (maxScore - minScore);
@@ -158,8 +167,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
 
       scatterSpots.add(
         ScatterSpot(
-          //TODO change the library
-          0.0,
+          counterX++,
           data.score!,
           show: true,
           dotPainter: FlDotCirclePainter(
@@ -189,48 +197,31 @@ class BayesianOptimizationPlotView extends StatelessWidget {
   }
 
   MinMaxValues minMax(List<BayesianOptimizationTrainingResultData>? plotData) {
-    double minX = double.infinity;
     double minY = double.infinity;
-    double maxX = double.negativeInfinity;
     double maxY = double.negativeInfinity;
 
     for (var data in plotData!) {
-      // if (data.sequence! < minX) {
-      //   minX = data.sequence!;
-      // }
       if (data.score! < minY) {
         minY = data.score!;
       }
-      // if (data.sequence! > maxX) {
-      //   maxX = data.sequence!;
-      // }
       if (data.score! > maxY) {
         maxY = data.score!;
       }
     }
 
-    return MinMaxValues(minX: minX, minY: minY, maxX: maxX, maxY: maxY);
+    return MinMaxValues(minY: minY, maxY: maxY);
   }
 }
 
 class MinMaxValues {
-  final double minX;
   final double minY;
-  final double maxX;
   final double maxY;
 
   MinMaxValues({
-    required this.minX,
     required this.minY,
-    required this.maxX,
     required this.maxY,
   });
 
-  double get getMinX => minX - 0.1;
-
-  double get getMinY => minY - 1;
-
-  double get getMaxX => maxX + 0.1;
-
-  double get getMaxY => maxY + 1;
+  double get getMinY => minY - (maxY - minY) * 0.1;
+  double get getMaxY => maxY + (maxY - minY) * 0.1;
 }
