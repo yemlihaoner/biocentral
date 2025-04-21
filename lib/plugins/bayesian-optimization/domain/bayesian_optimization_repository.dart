@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
@@ -22,68 +23,40 @@ class BayesianOptimizationRepository {
 
   void setCurrentResult(BayesianOptimizationTrainingResult? r) {
     currentResult = r;
-    saveCurrentResultIntoCSV(currentResult);
+    saveCurrentResultIntoJson(currentResult);
   }
 
   void addPickedPreviousTrainingResults(Uint8List? bytes) {
-    final BayesianOptimizationTrainingResult result = convertCSVtoTrainingResult(bytes);
+    final BayesianOptimizationTrainingResult result = convertJsonToTrainingResult(bytes);
     addPreviousTrainingResults(result);
   }
 
-  Future<void> saveCurrentResultIntoCSV(BayesianOptimizationTrainingResult? currentResult) async {
+  Future<void> saveCurrentResultIntoJson(BayesianOptimizationTrainingResult? currentResult) async {
     if (currentResult == null) return;
 
-    final String buffer = convertTrainingResultToCSV(currentResult);
+    final String jsonString = convertTrainingResultToJson(currentResult);
 
-    // Use _handleSave to save the file
     await _projectRepository.handleExternalSave(
-      fileName: 'bayesian_optimization_results.csv',
-      contentFunction: () async => buffer,
+      fileName: 'bayesian_optimization_results.json',
+      contentFunction: () async => jsonString,
     );
   }
 
-  BayesianOptimizationTrainingResult convertCSVtoTrainingResult(Uint8List? bytes) {
-    final String csvString = String.fromCharCodes(bytes!);
-    final List<String> rows = csvString.split('\n');
-
-    final List<BayesianOptimizationTrainingResultData> results = [];
-
-    for (int i = 1; i < rows.length; i++) {
-      final row = rows[i].trim();
-      if (row.isEmpty) continue;
-
-      final List<String> columns = row.split(',');
-      if (columns.length < 5) continue;
-
-      try {
-        results.add(
-          BayesianOptimizationTrainingResultData(
-            proteinId: columns[0],
-            sequence: columns[1],
-            score: double.parse(columns[2]),
-            uncertainty: double.parse(columns[3]),
-            mean: double.parse(columns[4]),
-          ),
-        );
-      } catch (e) {
-        continue;
-      }
+  BayesianOptimizationTrainingResult convertJsonToTrainingResult(Uint8List? bytes) {
+    if (bytes == null) {
+      return const BayesianOptimizationTrainingResult(results: []);
     }
 
-    return BayesianOptimizationTrainingResult(results: results);
+    try {
+      final String jsonString = String.fromCharCodes(bytes);
+      final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      return BayesianOptimizationTrainingResult.fromJson(jsonMap);
+    } catch (e) {
+      return const BayesianOptimizationTrainingResult(results: []);
+    }
   }
 
-  String convertTrainingResultToCSV(BayesianOptimizationTrainingResult result) {
-    final StringBuffer buffer = StringBuffer();
-
-    buffer.writeln('protein_id,sequence,score,uncertainty,mean');
-
-    if (result.results != null) {
-      for (final data in result.results!) {
-        buffer.writeln('${data.proteinId},${data.sequence},${data.score},${data.uncertainty},${data.mean}');
-      }
-    }
-
-    return buffer.toString();
+  String convertTrainingResultToJson(BayesianOptimizationTrainingResult result) {
+    return jsonEncode(result.toJson());
   }
 }

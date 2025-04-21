@@ -65,12 +65,9 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
                       children: [
                         BayesianOptimizationPlotView(
                           yLabel: 'Utility',
-                          xLabel: 'fc 28-d - Target (MPa)',
                           data: bloc.currentResult,
                         ),
                         BayesianOptimizationDatabaseGridView(
-                          yLabel: 'Utility',
-                          xLabel: 'fc 28-d - Target (MPa)',
                           data: bloc.currentResult,
                         ),
                       ],
@@ -80,12 +77,9 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
                       children: [
                         BayesianOptimizationPlotView(
                           yLabel: 'Utility',
-                          xLabel: 'fc 28-d - Target (MPa)',
                           data: bloc.previousResults?.last,
                         ),
                         BayesianOptimizationDatabaseGridView(
-                          yLabel: 'Utility',
-                          xLabel: 'fc 28-d - Target (MPa)',
                           data: bloc.previousResults?.last,
                         ),
                       ],

@@ -2,166 +2,197 @@ import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimiza
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+/// A widget that displays a scatter plot visualization of Bayesian optimization results.
+/// The plot shows protein sequences on the x-axis and their corresponding scores on the y-axis.
+/// Points are color-coded based on their score values, with a gradient legend showing the score range.
 class BayesianOptimizationPlotView extends StatelessWidget {
-  String yLabel;
-  String xLabel;
-  BayesianOptimizationTrainingResult? data;
+  /// Label for the y-axis (typically representing the score metric)
+  final String yLabel;
+
+  /// The training results data to be displayed
+  final BayesianOptimizationTrainingResult? data;
+
+  /// Cached min/max values for the y-axis range
+  final MinMaxValues minMaxValues;
 
   BayesianOptimizationPlotView({
     required this.yLabel,
-    required this.xLabel,
     this.data,
     super.key,
-  });
+  }) : minMaxValues = _calculateMinMax(data?.results);
 
-  late MinMaxValues minMaxValues;
+  /// Gets the x-axis label from the training config
+  String get xLabel {
+    final feature = data?.trainingConfig?['feature'] as String? ?? 'Feature';
+    final embedder = data?.trainingConfig?['selected_embedder'] as String? ?? 'Embedder';
+    return '$feature $embedder';
+  }
+
+  /// Calculates the minimum and maximum values for the y-axis
+  /// Adds a 10% padding to both ends of the range
+  static MinMaxValues _calculateMinMax(List<BayesianOptimizationTrainingResultData>? plotData) {
+    if (plotData == null || plotData.isEmpty) {
+      return MinMaxValues(minY: 0, maxY: 0);
+    }
+
+    double minY = double.infinity;
+    double maxY = double.negativeInfinity;
+
+    for (var data in plotData) {
+      if (data.score! < minY) minY = data.score!;
+      if (data.score! > maxY) maxY = data.score!;
+    }
+
+    return MinMaxValues(minY: minY, maxY: maxY);
+  }
 
   @override
   Widget build(BuildContext context) {
-    minMaxValues = minMax(data!.results);
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ScatterChart(
-                  ScatterChartData(
-                    titlesData: FlTitlesData(
-                      rightTitles: AxisTitles(
-                        axisNameWidget: Text(yLabel),
-                      ),
-                      topTitles: AxisTitles(
-                        axisNameWidget: Text(xLabel),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (value, meta) {
-                            return Text(
-                              value.toStringAsFixed(4), // Format the value to 2 decimal places
-                              style: const TextStyle(
-                                fontSize: 12,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (value, meta) {
-                            final int index = value.toInt();
-                            return RotatedBox(
-                              quarterTurns: 3, // Rotate the text 90 degrees clockwise
-                              child: Text(
-                                // Ensure the index is within bounds
-                                index == 0 || index > data!.results!.length
-                                    ? value.toString()
-                                    : data!.results![index - 1].proteinId!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                ),
-                                textAlign: TextAlign.center, // Center-align the text
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    gridData: const FlGridData(),
-                    scatterSpots: getData(data!),
-                    minX: 0,
-                    maxX: data!.results!.length.toDouble() + 1,
-                    minY: minMaxValues.getMinY,
-                    maxY: minMaxValues.getMaxY,
-                    borderData: FlBorderData(show: true),
-                    scatterTouchData: ScatterTouchData(
-                      touchTooltipData: ScatterTouchTooltipData(
-                        getTooltipItems: (ScatterSpot touchedSpot) {
-                          return ScatterTooltipItem(
-                            'Sequence: ${data!.results![touchedSpot.x.toInt() - 1].proteinId}, Score: ${touchedSpot.y.toStringAsFixed(2)}',
-                            textStyle: const TextStyle(color: Colors.white),
-                          );
-                        },
-                      ),
-                      enabled: true,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Color Legend Bar
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 64),
-              width: 100,
-              child: Row(
-                children: [
-                  Container(
-                    width: 20,
-                    decoration: BoxDecoration(
-                      border: Border.all(),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Colors.blue, // Low score
-                          Colors.purple,
-                          Colors.red,
-                          Colors.orange,
-                          Colors.yellow, // High score
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        minMaxValues.maxY.toStringAsFixed(2),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        ((minMaxValues.maxY - minMaxValues.minY) / 2).toStringAsFixed(2),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        minMaxValues.minY.toStringAsFixed(2),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildScatterPlot(),
+            _buildColorLegend(),
           ],
         ),
       ),
     );
   }
 
+  /// Builds the main scatter plot visualization
+  Widget _buildScatterPlot() {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ScatterChart(
+          ScatterChartData(
+            titlesData: _buildTitlesData(),
+            gridData: const FlGridData(),
+            scatterSpots: getData(data!),
+            minX: 0,
+            maxX: data!.results!.length.toDouble() + 1,
+            minY: minMaxValues.getMinY,
+            maxY: minMaxValues.getMaxY,
+            borderData: FlBorderData(show: true),
+            scatterTouchData: _buildTouchData(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the color legend showing the score range
+  Widget _buildColorLegend() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 64),
+      width: 100,
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            decoration: BoxDecoration(
+              border: Border.all(),
+              gradient: const LinearGradient(
+                colors: [
+                  Colors.blue, // Low score
+                  Colors.purple,
+                  Colors.red,
+                  Colors.orange,
+                  Colors.yellow, // High score
+                ],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                minMaxValues.maxY.toStringAsFixed(2),
+                style: const TextStyle(fontSize: 14),
+              ),
+              Text(
+                ((minMaxValues.maxY - minMaxValues.minY) / 2).toStringAsFixed(2),
+                style: const TextStyle(fontSize: 14),
+              ),
+              Text(
+                minMaxValues.minY.toStringAsFixed(2),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the chart titles and axis labels
+  FlTitlesData _buildTitlesData() {
+    return FlTitlesData(
+      rightTitles: AxisTitles(
+        axisNameWidget: Text(yLabel),
+      ),
+      topTitles: AxisTitles(
+        axisNameWidget: Text(xLabel),
+      ),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 40,
+          getTitlesWidget: (value, meta) {
+            return Text(
+              value.toStringAsFixed(4),
+              style: const TextStyle(fontSize: 12),
+            );
+          },
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 40,
+          getTitlesWidget: (value, meta) {
+            final int index = value.toInt();
+            return RotatedBox(
+              quarterTurns: 3,
+              child: Text(
+                index == 0 || index > data!.results!.length ? value.toString() : data!.results![index - 1].proteinId!,
+                style: const TextStyle(fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Builds the touch interaction data for the scatter plot
+  ScatterTouchData _buildTouchData() {
+    return ScatterTouchData(
+      touchTooltipData: ScatterTouchTooltipData(
+        getTooltipItems: (ScatterSpot touchedSpot) {
+          return ScatterTooltipItem(
+            'Sequence: ${data!.results![touchedSpot.x.toInt() - 1].proteinId}, Score: ${touchedSpot.y.toStringAsFixed(2)}',
+            textStyle: const TextStyle(color: Colors.white),
+          );
+        },
+      ),
+      enabled: true,
+    );
+  }
+
+  /// Converts the training results into scatter plot data points
   List<ScatterSpot> getData(BayesianOptimizationTrainingResult plotData) {
     final List<ScatterSpot> scatterSpots = [];
+    final (minScore, maxScore) = _calculateScoreRange(plotData);
 
-    // Calculate min and max score for color gradient
-    double minScore = double.infinity;
-    double maxScore = double.negativeInfinity;
-
-    for (var data in plotData.results!) {
-      if (data.score! < minScore) minScore = data.score!;
-      if (data.score! > maxScore) maxScore = data.score!;
-    }
-
-    // Map the data to ScatterSpot
     double counterX = 1;
     for (var data in plotData.results!) {
-      // Calculate color based on the score's position in the range
       final double scoreRatio = (data.score! - minScore) / (maxScore - minScore);
       final Color pointColor = getColorBasedOnScore(scoreRatio);
 
@@ -181,38 +212,31 @@ class BayesianOptimizationPlotView extends StatelessWidget {
     return scatterSpots;
   }
 
-  // Function to assign colors based on score ratio (0.0 - 1.0)
-  Color getColorBasedOnScore(double ratio) {
-    if (ratio <= 0.2) {
-      return Colors.blue; // Low score
-    } else if (ratio <= 0.4) {
-      return Colors.purple;
-    } else if (ratio <= 0.6) {
-      return Colors.red;
-    } else if (ratio <= 0.8) {
-      return Colors.orange;
-    } else {
-      return Colors.yellow; // High score
+  /// Calculates the minimum and maximum score values from the training results
+  (double, double) _calculateScoreRange(BayesianOptimizationTrainingResult plotData) {
+    double minScore = double.infinity;
+    double maxScore = double.negativeInfinity;
+
+    for (var data in plotData.results!) {
+      if (data.score! < minScore) minScore = data.score!;
+      if (data.score! > maxScore) maxScore = data.score!;
     }
+
+    return (minScore, maxScore);
   }
 
-  MinMaxValues minMax(List<BayesianOptimizationTrainingResultData>? plotData) {
-    double minY = double.infinity;
-    double maxY = double.negativeInfinity;
-
-    for (var data in plotData!) {
-      if (data.score! < minY) {
-        minY = data.score!;
-      }
-      if (data.score! > maxY) {
-        maxY = data.score!;
-      }
-    }
-
-    return MinMaxValues(minY: minY, maxY: maxY);
+  /// Returns a color based on the score ratio (0.0 - 1.0)
+  /// The color gradient goes from blue (low scores) to yellow (high scores)
+  Color getColorBasedOnScore(double ratio) {
+    if (ratio <= 0.2) return Colors.blue;
+    if (ratio <= 0.4) return Colors.purple;
+    if (ratio <= 0.6) return Colors.red;
+    if (ratio <= 0.8) return Colors.orange;
+    return Colors.yellow;
   }
 }
 
+/// A utility class to store and calculate min/max values for the y-axis
 class MinMaxValues {
   final double minY;
   final double maxY;
@@ -222,6 +246,9 @@ class MinMaxValues {
     required this.maxY,
   });
 
+  /// Returns the minimum y-value with 10% padding
   double get getMinY => minY - (maxY - minY) * 0.1;
+
+  /// Returns the maximum y-value with 10% padding
   double get getMaxY => maxY + (maxY - minY) * 0.1;
 }

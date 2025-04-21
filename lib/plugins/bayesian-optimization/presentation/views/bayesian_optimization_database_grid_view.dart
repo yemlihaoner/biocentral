@@ -2,14 +2,13 @@ import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimiza
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
+/// A widget that displays Bayesian optimization results in a grid format.
+/// Shows protein sequences, scores, uncertainties, and other metrics in a sortable and filterable table.
 class BayesianOptimizationDatabaseGridView extends StatefulWidget {
-  String yLabel;
-  String xLabel;
-  BayesianOptimizationTrainingResult? data;
+  /// The training results data to be displayed
+  final BayesianOptimizationTrainingResult? data;
 
-  BayesianOptimizationDatabaseGridView({
-    required this.yLabel,
-    required this.xLabel,
+  const BayesianOptimizationDatabaseGridView({
     this.data,
     super.key,
   });
@@ -19,129 +18,54 @@ class BayesianOptimizationDatabaseGridView extends StatefulWidget {
 }
 
 class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizationDatabaseGridView> {
+  /// Default columns configuration for the grid
   static final List<PlutoColumn> _defaultBOColumns = <PlutoColumn>[
-    PlutoColumn(
+    _createColumn(
       title: 'Protein ID',
       field: 'proteinId',
       type: PlutoColumnType.text(),
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: PlutoAggregateColumnType.count,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              const TextSpan(
-                text: 'N',
-                style: TextStyle(color: Colors.green),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'N',
+      footerColor: Colors.green,
     ),
-    PlutoColumn(
+    _createColumn(
       title: 'Score',
       field: 'score',
       type: PlutoColumnType.number(format: '#,###.###'),
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: PlutoAggregateColumnType.count,
-          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              const TextSpan(
-                text: 'Missing',
-                style: TextStyle(color: Colors.red),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'Missing',
+      footerColor: Colors.red,
     ),
-    PlutoColumn(
+    _createColumn(
       title: 'Sequence',
       field: 'sequence',
       type: PlutoColumnType.text(),
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: PlutoAggregateColumnType.count,
-          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              const TextSpan(
-                text: 'Missing',
-                style: TextStyle(color: Colors.red),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'Missing',
+      footerColor: Colors.red,
     ),
-    PlutoColumn(
+    _createColumn(
       title: 'Uncertainty',
       field: 'uncertainty',
       type: PlutoColumnType.number(format: '#,###.###'),
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: PlutoAggregateColumnType.count,
-          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              const TextSpan(
-                text: 'Missing',
-                style: TextStyle(color: Colors.red),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'Missing',
+      footerColor: Colors.red,
     ),
-    PlutoColumn(
+    _createColumn(
       title: 'Mean',
       field: 'mean',
       type: PlutoColumnType.number(format: '#,###.###'),
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: PlutoAggregateColumnType.count,
-          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              const TextSpan(
-                text: 'Missing',
-                style: TextStyle(color: Colors.red),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'Missing',
+      footerColor: Colors.red,
     ),
   ];
 
+  /// Grid state manager for handling grid operations
   PlutoGridStateManager? stateManager;
+
+  /// Grid mode configuration
   final PlutoGridMode plutoGridMode = PlutoGridMode.selectWithOneTap;
 
   @override
@@ -149,26 +73,68 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final double totalWidth = constraints.maxWidth;
-          final double columnWidth = totalWidth / _defaultBOColumns.length;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: PlutoGrid(
-              mode: plutoGridMode,
-              columns: buildColumns(columnWidth),
-              rows: buildRows(),
-              onLoaded: (PlutoGridOnLoadedEvent event) {
-                stateManager ??= event.stateManager;
-                stateManager!.setShowColumnFilter(true);
-              },
-            ),
-          );
+          final double columnWidth = constraints.maxWidth / _defaultBOColumns.length;
+          return _buildGrid(columnWidth);
         },
       ),
     );
   }
 
+  /// Builds the main grid widget with configured columns and rows
+  Widget _buildGrid(double columnWidth) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: PlutoGrid(
+        mode: plutoGridMode,
+        columns: buildColumns(columnWidth),
+        rows: buildRows(),
+        onLoaded: _handleGridLoaded,
+      ),
+    );
+  }
+
+  /// Handles grid initialization and setup
+  void _handleGridLoaded(PlutoGridOnLoadedEvent event) {
+    stateManager ??= event.stateManager;
+    stateManager!.setShowColumnFilter(true);
+  }
+
+  /// Creates a column with the specified configuration
+  static PlutoColumn _createColumn({
+    required String title,
+    required String field,
+    required PlutoColumnType type,
+    required PlutoAggregateColumnType footerType,
+    required String footerTitle,
+    required Color footerColor,
+  }) {
+    return PlutoColumn(
+      title: title,
+      field: field,
+      type: type,
+      footerRenderer: (rendererContext) {
+        return PlutoAggregateColumnFooter(
+          rendererContext: rendererContext,
+          type: footerType,
+          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
+          format: '#',
+          alignment: Alignment.center,
+          titleSpanBuilder: (text) {
+            return [
+              TextSpan(
+                text: footerTitle,
+                style: TextStyle(color: footerColor),
+              ),
+              const TextSpan(text: ': '),
+              TextSpan(text: text),
+            ];
+          },
+        );
+      },
+    );
+  }
+
+  /// Builds and configures columns with the specified width
   List<PlutoColumn> buildColumns(double columnWidth) {
     final List<PlutoColumn> result = List.from(_defaultBOColumns);
     for (PlutoColumn column in result) {
@@ -178,14 +144,14 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     return result;
   }
 
+  /// Builds rows from the training results data
   List<PlutoRow> buildRows() {
-    final List<PlutoRow> rows = List.empty(growable: true);
-    if (widget.data == null || widget.data!.results == null) {
-      return rows;
+    if (widget.data?.results == null) {
+      return [];
     }
-    final List<BayesianOptimizationTrainingResultData> results = widget.data!.results!;
-    for (BayesianOptimizationTrainingResultData data in results) {
-      final PlutoRow row = PlutoRow(
+
+    return widget.data!.results!.map((data) {
+      return PlutoRow(
         cells: {
           'proteinId': PlutoCell(value: data.proteinId),
           'score': PlutoCell(value: data.score),
@@ -194,9 +160,6 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
           'mean': PlutoCell(value: data.mean),
         },
       );
-
-      rows.add(row);
-    }
-    return rows;
+    }).toList();
   }
 }

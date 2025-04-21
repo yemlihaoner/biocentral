@@ -4,13 +4,33 @@ import 'package:flutter/foundation.dart';
 @immutable
 class BayesianOptimizationTrainingResult extends Equatable {
   final List<BayesianOptimizationTrainingResultData>? results;
+  final Map<String, dynamic>? trainingConfig;
 
   const BayesianOptimizationTrainingResult({
     required this.results,
+    this.trainingConfig,
   });
 
+  /// Creates a [BayesianOptimizationTrainingResult] from a JSON map
+  factory BayesianOptimizationTrainingResult.fromJson(Map<String, dynamic> json) {
+    return BayesianOptimizationTrainingResult(
+      results: (json['results'] as List<dynamic>?)
+          ?.map((data) => BayesianOptimizationTrainingResultData.fromJson(data as Map<String, dynamic>))
+          .toList(),
+      trainingConfig: json['trainingConfig'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Converts this object to a JSON map
+  Map<String, dynamic> toJson() {
+    return {
+      'results': results?.map((data) => data.toJson()).toList() ?? [],
+      'trainingConfig': trainingConfig,
+    };
+  }
+
   @override
-  List<Object?> get props => [results];
+  List<Object?> get props => [results, trainingConfig];
 }
 
 class BayesianOptimizationTrainingResultData extends Equatable {
@@ -20,12 +40,37 @@ class BayesianOptimizationTrainingResultData extends Equatable {
   final double? uncertainty;
   final double? mean;
 
-  const BayesianOptimizationTrainingResultData(
-      {required this.proteinId,
-      required this.sequence,
-      required this.score,
-      required this.uncertainty,
-      required this.mean});
+  const BayesianOptimizationTrainingResultData({
+    required this.proteinId,
+    required this.sequence,
+    required this.score,
+    required this.uncertainty,
+    required this.mean,
+  });
+
+  /// Creates a [BayesianOptimizationTrainingResultData] from a JSON map
+  factory BayesianOptimizationTrainingResultData.fromJson(Map<String, dynamic> json) {
+    return BayesianOptimizationTrainingResultData(
+      proteinId: json['proteinId'] as String?,
+      sequence: json['sequence'] as String?,
+      score: json['score'] is double ? json['score'] as double? : double.tryParse(json['score'].toString()),
+      uncertainty: json['uncertainty'] is double
+          ? json['uncertainty'] as double?
+          : double.tryParse(json['uncertainty'].toString()),
+      mean: json['mean'] is double ? json['mean'] as double? : double.tryParse(json['mean'].toString()),
+    );
+  }
+
+  /// Converts this object to a JSON map
+  Map<String, dynamic> toJson() {
+    return {
+      'proteinId': proteinId,
+      'sequence': sequence,
+      'score': score,
+      'uncertainty': uncertainty,
+      'mean': mean,
+    };
+  }
 
   static BayesianOptimizationTrainingResultData fromMap(Map<String, dynamic> map) {
     return BayesianOptimizationTrainingResultData(
