@@ -38,6 +38,19 @@ class BayesianOptimizationTrainingStarted extends BayesianOptimizationEvent {
   final double? targetRangeMax;
   final bool? desiredBooleanValue;
 
+  /// Constructor for starting Bayesian Optimization training.
+  ///
+  /// - [context]: The build context.
+  /// - [selectedTask]: The selected task type.
+  /// - [selectedFeature]: The feature to optimize.
+  /// - [selectedModel]: The model type.
+  /// - [exploitationExplorationValue]: The coefficient for exploitation vs. exploration.
+  /// - [selectedEmbedder]: The selected embedder.
+  /// - [optimizationType]: The optimization type (e.g., Maximize, Minimize).
+  /// - [targetValue]: The target value for optimization.
+  /// - [targetRangeMin]: The minimum value for the target range.
+  /// - [targetRangeMax]: The maximum value for the target range.
+  /// - [desiredBooleanValue]: The desired boolean value for discrete tasks.
   BayesianOptimizationTrainingStarted(
     this.context,
     this.selectedTask,
@@ -78,6 +91,13 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
   final BiocentralProjectRepository _biocentralProjectRepository;
   final BiocentralClientRepository _bioCentralClientRepository;
 
+  /// Constructor for Bayesian Optimization Bloc.
+  ///
+  /// - [_bayesianOptimizationRepository]: Repository for managing Bayesian Optimization data.
+  /// - [_biocentralProjectRepository]: Repository for managing project data.
+  /// - [_bioCentralClientRepository]: Repository for managing client data.
+  /// - [eventBus]: Event bus for handling events.
+  /// - [_biocentralDatabaseRepository]: Repository for managing database data.
   BayesianOptimizationBloc(
     this._bayesianOptimizationRepository,
     this._biocentralProjectRepository,
@@ -94,6 +114,10 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
 
   BayesianOptimizationTrainingResult? get currentResult => _bayesianOptimizationRepository.currentResult;
 
+  /// Handles the loading of previous training results.
+  ///
+  /// - [event]: The event to load previous trainings.
+  /// - [emit]: Emits the new state.
   Future<void> _onLoadPreviousTrainings(
     BayesianOptimizationLoadPreviousTrainings event,
     Emitter<BayesianOptimizationState> emit,
@@ -119,6 +143,10 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     }
   }
 
+  /// Handles the start of Bayesian Optimization training.
+  ///
+  /// - [event]: The event to start training.
+  /// - [emit]: Emits the new state.
   void _onTrainingStarted(
     BayesianOptimizationTrainingStarted event,
     Emitter<BayesianOptimizationState> emit,
@@ -144,7 +172,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         'model_type': event.selectedModel?.name,
         // 'selectedEmbedder': event.selectedEmbedder?.name, //TODO: Tell Shuze to add
         'feature': event.selectedFeature.toString(),
-        'coefficient': event.exploitationExplorationValue.toString()
+        'coefficient': event.exploitationExplorationValue.toString(),
       };
       // TODO: Tell Shuze to accept coefficient as string, and cast to flaot in backend
 
@@ -172,11 +200,12 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
       }
 
       final command = TransferBOTrainingConfigCommand(
-          biocentralProjectRepository: _biocentralProjectRepository,
-          biocentralDatabase: biocentralDatabase,
-          client: _bioCentralClientRepository.getServiceClient<BayesianOptimizationClient>(),
-          trainingConfiguration: config,
-          targetFeature: event.selectedFeature.toString());
+        biocentralDatabase: biocentralDatabase,
+        client: _bioCentralClientRepository.getServiceClient<BayesianOptimizationClient>(),
+        trainingConfiguration: config,
+        targetFeature: event.selectedFeature.toString(),
+      );
+
       await command
           .executeWithLogging<BayesianOptimizationState>(
         _biocentralProjectRepository,
