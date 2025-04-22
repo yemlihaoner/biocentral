@@ -31,7 +31,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     _createColumn(
       title: 'Score',
       field: 'score',
-      type: PlutoColumnType.number(format: '#,###.###'),
+      type: PlutoColumnType.number(format: '#,###.############'),
       footerType: PlutoAggregateColumnType.count,
       footerTitle: 'Missing',
       footerColor: Colors.red,
@@ -47,7 +47,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     _createColumn(
       title: 'Uncertainty',
       field: 'uncertainty',
-      type: PlutoColumnType.number(format: '#,###.###'),
+      type: PlutoColumnType.number(format: '#,###.############'),
       footerType: PlutoAggregateColumnType.count,
       footerTitle: 'Missing',
       footerColor: Colors.red,
@@ -55,7 +55,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     _createColumn(
       title: 'Mean',
       field: 'mean',
-      type: PlutoColumnType.number(format: '#,###.###'),
+      type: PlutoColumnType.number(format: '#,###.############'),
       footerType: PlutoAggregateColumnType.count,
       footerTitle: 'Missing',
       footerColor: Colors.red,

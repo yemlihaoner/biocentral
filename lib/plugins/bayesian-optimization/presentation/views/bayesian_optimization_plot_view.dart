@@ -46,6 +46,11 @@ class BayesianOptimizationPlotView extends StatelessWidget {
     return MinMaxValues(minY: minY, maxY: maxY);
   }
 
+  /// Formats a number to a maximum of 5 decimal places, removing trailing zeros.
+  String formatNumber(double value) {
+    return double.parse(value.toStringAsFixed(5)).toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,15 +117,15 @@ class BayesianOptimizationPlotView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                minMaxValues.maxY.toStringAsFixed(2),
+                formatNumber(minMaxValues.maxY),
                 style: const TextStyle(fontSize: 14),
               ),
               Text(
-                ((minMaxValues.maxY - minMaxValues.minY) / 2).toStringAsFixed(2),
+                formatNumber(minMaxValues.maxY - (minMaxValues.maxY - minMaxValues.minY) / 2),
                 style: const TextStyle(fontSize: 14),
               ),
               Text(
-                minMaxValues.minY.toStringAsFixed(2),
+                formatNumber(minMaxValues.minY),
                 style: const TextStyle(fontSize: 14),
               ),
             ],
@@ -134,18 +139,24 @@ class BayesianOptimizationPlotView extends StatelessWidget {
   FlTitlesData _buildTitlesData() {
     return FlTitlesData(
       rightTitles: AxisTitles(
-        axisNameWidget: Text(yLabel),
+        axisNameWidget: Text(
+          yLabel,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       ),
       topTitles: AxisTitles(
-        axisNameWidget: Text(xLabel),
+        axisNameWidget: Text(
+          xLabel,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       ),
       leftTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 40,
+          reservedSize: 50,
           getTitlesWidget: (value, meta) {
             return Text(
-              value.toStringAsFixed(4),
+              formatNumber(value),
               style: const TextStyle(fontSize: 12),
             );
           },
@@ -154,7 +165,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
-          reservedSize: 40,
+          reservedSize: 50,
           getTitlesWidget: (value, meta) {
             final int index = value.toInt();
             return RotatedBox(
@@ -177,8 +188,8 @@ class BayesianOptimizationPlotView extends StatelessWidget {
       touchTooltipData: ScatterTouchTooltipData(
         getTooltipItems: (ScatterSpot touchedSpot) {
           return ScatterTooltipItem(
-            'Sequence: ${data!.results![touchedSpot.x.toInt() - 1].proteinId}, Score: ${touchedSpot.y.toStringAsFixed(2)}',
-            textStyle: const TextStyle(color: Colors.white),
+            '${data!.results![touchedSpot.x.toInt() - 1].proteinId}\n Score: ${formatNumber(touchedSpot.y)}',
+            textStyle: const TextStyle(color: Colors.white, fontSize: 10),
           );
         },
       ),
