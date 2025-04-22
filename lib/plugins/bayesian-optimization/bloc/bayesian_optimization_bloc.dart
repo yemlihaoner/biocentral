@@ -101,7 +101,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     emit(state.setOperating(information: 'Loading previous trainings...'));
 
     final FilePickerResult? result =
-        await FilePicker.platform.pickFiles(allowedExtensions: ['csv'], type: FileType.custom, withData: kIsWeb);
+        await FilePicker.platform.pickFiles(allowedExtensions: ['json'], type: FileType.custom, withData: kIsWeb);
 
     if (result != null) {
       _bayesianOptimizationRepository.previousTrainingResults = [];
