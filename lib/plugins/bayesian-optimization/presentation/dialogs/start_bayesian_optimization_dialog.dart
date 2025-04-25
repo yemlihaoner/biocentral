@@ -73,116 +73,78 @@ class StartBOTrainingDialog extends StatelessWidget {
                   ],
                 ),
 
-              // Task Selection
+              // Task and Feature Selection (in the same row)
               if (state.currentStep.index >= BOTrainingDialogStep.taskSelection.index && state.selectedDataset != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                    const Text('Select Task:', style: TextStyle(fontSize: 16)),
-                    DropdownButton<TaskType>(
-                      value: state.selectedTask,
-                      hint: const Text('Choose a task'),
-                      items: state.tasks
-                          .map((task) => DropdownMenuItem(value: task, child: Text(task.displayName)))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) bloc.add(TaskSelected(value));
-                      },
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Task Selection
+                        Expanded(
+                          flex: 2, // Takes up 2/3 of the row
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Select Task:', style: TextStyle(fontSize: 16)),
+                              DropdownButton<TaskType>(
+                                value: state.selectedTask,
+                                hint: const Text('Choose a task'),
+                                isExpanded: true,
+                                items: state.tasks
+                                    .map((task) => DropdownMenuItem(value: task, child: Text(task.displayName)))
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) bloc.add(TaskSelected(value));
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Feature Selection
+                        Expanded(
+                          flex: 1, // Takes up 1/3 of the row
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Select Feature:', style: TextStyle(fontSize: 16)),
+                              DropdownButton<String>(
+                                value: state.selectedFeature,
+                                hint: const Text('Choose a feature'),
+                                isExpanded: true,
+                                items: state.currentStep.index >= BOTrainingDialogStep.featureSelection.index &&
+                                        state.selectedTask != null
+                                    ? state.availableFeatures
+                                        .map((feature) => DropdownMenuItem(value: feature, child: Text(feature)))
+                                        .toList()
+                                    : [],
+                                onChanged: state.currentStep.index >= BOTrainingDialogStep.featureSelection.index &&
+                                        state.selectedTask != null
+                                    ? (value) {
+                                        if (value != null) bloc.add(FeatureSelected(value));
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
 
-              // Feature Selection
-              if (state.currentStep.index >= BOTrainingDialogStep.featureSelection.index && state.selectedTask != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    const Text('Select Feature:', style: TextStyle(fontSize: 16)),
-                    DropdownButton<String>(
-                      value: state.selectedFeature,
-                      hint: const Text('Choose a feature'),
-                      items: state.availableFeatures
-                          .map((feature) => DropdownMenuItem(value: feature, child: Text(feature)))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) bloc.add(FeatureSelected(value));
-                      },
-                    ),
-                  ],
-                ),
-
-              // Feature Configuration
+              // Feature Configuration and Optimization Type (full row or split with target range)
               if (state.currentStep.index >= BOTrainingDialogStep.featureConfiguration.index &&
                   state.selectedFeature != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                    if (state.selectedTask == TaskType.findOptimalValues)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Optimization Type:', style: TextStyle(fontSize: 16)),
-                          DropdownButton<String>(
-                            value: state.optimizationType,
-                            hint: const Text('Choose optimization type'),
-                            items: ['Maximize', 'Minimize', 'Target Range']
-                                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) bloc.add(OptimizationTypeSelected(value));
-                            },
-                          ),
-                          if (state.optimizationType == 'Target Range')
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        decoration: const InputDecoration(labelText: 'Min'),
-                                        keyboardType: TextInputType.number,
-                                        onChanged: (value) {
-                                          final number = double.tryParse(value);
-                                          if (number != null) {
-                                            bloc.add(TargetRangeMinUpdated(number));
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: TextFormField(
-                                        decoration: const InputDecoration(labelText: 'Max'),
-                                        keyboardType: TextInputType.number,
-                                        onChanged: (value) {
-                                          final number = double.tryParse(value);
-                                          if (number != null) {
-                                            bloc.add(TargetRangeMaxUpdated(number));
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (state.targetRangeMin != null &&
-                                    state.targetRangeMax != null &&
-                                    state.targetRangeMin! >= state.targetRangeMax!)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 8.0),
-                                    child: Text(
-                                      'Min value must be less than Max value',
-                                      style: TextStyle(color: Colors.red, fontSize: 12),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
-                      )
-                    else if (state.selectedTask == TaskType.findHighestProbability)
+                    // Boolean type configuration
+                    if (state.selectedTask == TaskType.findHighestProbability)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -200,50 +162,165 @@ class StartBOTrainingDialog extends StatelessWidget {
                           ),
                         ],
                       ),
+
+                    // Optimization Type for findOptimalValues
+                    if (state.selectedTask == TaskType.findOptimalValues)
+                      (state.optimizationType == 'Target Range')
+                          // Target Range: 1/3 1/3 1/3 layout
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Optimization Type (1/3)
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Optimization Type:', style: TextStyle(fontSize: 16)),
+                                      DropdownButton<String>(
+                                        value: state.optimizationType,
+                                        hint: const Text('Choose type'),
+                                        isExpanded: true,
+                                        items: ['Maximize', 'Minimize', 'Target Range']
+                                            .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                                            .toList(),
+                                        onChanged: (value) {
+                                          if (value != null) bloc.add(OptimizationTypeSelected(value));
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Min Value (1/3)
+                                Expanded(
+                                  flex: 1,
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(labelText: 'Min'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (value) {
+                                      final number = double.tryParse(value);
+                                      if (number != null) {
+                                        bloc.add(TargetRangeMinUpdated(number));
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Max Value (1/3)
+                                Expanded(
+                                  flex: 1,
+                                  child: TextFormField(
+                                    decoration: const InputDecoration(labelText: 'Max'),
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (value) {
+                                      final number = double.tryParse(value);
+                                      if (number != null) {
+                                        bloc.add(TargetRangeMaxUpdated(number));
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          // Full-width Optimization Type
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Optimization Type:', style: TextStyle(fontSize: 16)),
+                                DropdownButton<String>(
+                                  value: state.optimizationType,
+                                  hint: const Text('Choose type'),
+                                  isExpanded: true,
+                                  items: ['Maximize', 'Minimize', 'Target Range']
+                                      .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value != null) bloc.add(OptimizationTypeSelected(value));
+                                  },
+                                ),
+                              ],
+                            ),
+
+                    // Show error for target range if needed
+                    if (state.selectedTask == TaskType.findOptimalValues &&
+                        state.optimizationType == 'Target Range' &&
+                        state.targetRangeMin != null &&
+                        state.targetRangeMax != null &&
+                        state.targetRangeMin! >= state.targetRangeMax!)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          'Min value must be less than Max value',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+                      ),
                   ],
                 ),
 
-              // Embedder Selection
+              // Embedder and Model Selection (50/50 split row)
               if (state.currentStep.index >= BOTrainingDialogStep.embedderSelection.index &&
                   state.isFeatureConfigurationComplete)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
-                    const Text('Select Embedder:', style: TextStyle(fontSize: 16)),
-                    DropdownButton<PredefinedEmbedder>(
-                      value: state.selectedEmbedder,
-                      hint: const Text('Choose an embedder'),
-                      items: state.availableEmbedders
-                          .map((embedder) => DropdownMenuItem(
-                                value: embedder,
-                                child: Text(embedder.name),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) bloc.add(EmbedderSelected(value));
-                      },
-                    ),
-                  ],
-                ),
-
-              // Model Selection
-              if (state.currentStep.index >= BOTrainingDialogStep.modelSelection.index &&
-                  state.selectedEmbedder != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    const Text('Select Model:', style: TextStyle(fontSize: 16)),
-                    DropdownButton<BayesianOptimizationModelTypes>(
-                      value: state.selectedModel,
-                      hint: const Text('Choose a model'),
-                      items: BayesianOptimizationModelTypes.values
-                          .map((model) => DropdownMenuItem(value: model, child: Text(model.name)))
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) bloc.add(ModelSelected(value));
-                      },
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Embedder Selection (1/2)
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Select Embedder:', style: TextStyle(fontSize: 16)),
+                              DropdownButton<PredefinedEmbedder>(
+                                value: state.selectedEmbedder,
+                                hint: const Text('Choose embedder'),
+                                isExpanded: true,
+                                items: state.availableEmbedders
+                                    .map((embedder) => DropdownMenuItem(
+                                          value: embedder,
+                                          child: Text(embedder.name),
+                                        ))
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) bloc.add(EmbedderSelected(value));
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Model Selection (1/2)
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Select Model:', style: TextStyle(fontSize: 16)),
+                              DropdownButton<BayesianOptimizationModelTypes>(
+                                value: state.selectedModel,
+                                hint: const Text('Choose model'),
+                                isExpanded: true,
+                                items: state.currentStep.index >= BOTrainingDialogStep.modelSelection.index &&
+                                        state.selectedEmbedder != null
+                                    ? BayesianOptimizationModelTypes.values
+                                        .map((model) => DropdownMenuItem(value: model, child: Text(model.name)))
+                                        .toList()
+                                    : [],
+                                onChanged: state.currentStep.index >= BOTrainingDialogStep.modelSelection.index &&
+                                        state.selectedEmbedder != null
+                                    ? (value) {
+                                        if (value != null) bloc.add(ModelSelected(value));
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

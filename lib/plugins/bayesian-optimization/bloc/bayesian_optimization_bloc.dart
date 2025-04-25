@@ -174,7 +174,6 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         'feature': event.selectedFeature.toString(),
         'coefficient': event.exploitationExplorationValue.toString(),
       };
-      // TODO: Tell Shuze to accept coefficient as string, and cast to flaot in backend
 
       // Discrete:
       if (event.selectedTask == TaskType.findHighestProbability) {
