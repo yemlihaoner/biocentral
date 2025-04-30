@@ -102,6 +102,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
   final BiocentralDatabaseRepository _biocentralDatabaseRepository;
   final BiocentralProjectRepository _biocentralProjectRepository;
   final BiocentralClientRepository _bioCentralClientRepository;
+  final EventBus _eventBus;
 
   /// Constructor for Bayesian Optimization Bloc.
   ///
@@ -114,9 +115,9 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     this._bayesianOptimizationRepository,
     this._biocentralProjectRepository,
     this._bioCentralClientRepository,
-    EventBus eventBus,
+    this._eventBus,
     this._biocentralDatabaseRepository,
-  ) : super(const BayesianOptimizationState.idle(), eventBus) {
+  ) : super(const BayesianOptimizationState.idle(), _eventBus) {
     on<BayesianOptimizationTrainingStarted>(_onTrainingStarted);
     on<BayesianOptimizationLoadPreviousTrainings>(_onLoadPreviousTrainings);
     on<BayesianOptimizationIterateTraining>(_onIterateTraining);
@@ -244,15 +245,35 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     Emitter<BayesianOptimizationState> emit,
   ) async {
     emit(state.setOperating(information: 'Updating database and preparing next iteration...'));
+    final config = event.trainingResult.trainingConfig ?? {};
 
-    final Map<String, dynamic> scoreUpdates = {};
+    // Get the protein repository
+    final BiocentralDatabase? proteinDatabase = _biocentralDatabaseRepository.getFromType(Protein);
+    if (proteinDatabase == null) {
+      emit(state.setErrored(information: 'Could not find protein database!'));
+      return;
+    }
+
+    // Update proteins with new scores
     for (int i = 0; i < event.updateList.length; i++) {
       if (event.updateList[i]) {
-        scoreUpdates[event.trainingResult.results![i].proteinId!] = event.trainingResult.results![i].score;
+        final String proteinId = event.trainingResult.results![i].proteinId!;
+        final double? score = event.trainingResult.results![i].score;
+        if (score != null) {
+          final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
+          if (entity != null && entity is Protein) {
+            final Map<String, String> newAttributes = Map.from(entity.attributes.toMap());
+            newAttributes[config['feature_name']] = score.toString();
+            final Protein updatedProtein = entity.copyWith(attributes: CustomAttributes(newAttributes));
+            proteinDatabase.updateEntity(proteinId, updatedProtein);
+          }
+        }
       }
     }
-    // Show the training dialog with pre-selected configuration
-    final config = event.trainingResult.trainingConfig ?? {};
+
+    // Fire database updated event to trigger view updates
+    _eventBus.fire(BiocentralDatabaseUpdatedEvent());
+
     showDialog(
       context: event.context,
       builder: (BuildContext context) {
