@@ -5,9 +5,9 @@ import 'package:biocentral/plugins/bayesian-optimization/domain/bayesian_optimiz
 import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_model_types.dart';
 import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
 import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/bayesian_optimization_training_dialog_bloc.dart';
+import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/start_bayesian_optimization_dialog.dart';
 import 'package:biocentral/plugins/embeddings/data/predefined_embedders.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:bloc/bloc.dart';
 import 'package:bloc_effects/bloc_effects.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -66,6 +66,18 @@ class BayesianOptimizationTrainingStarted extends BayesianOptimizationEvent {
   });
 }
 
+class BayesianOptimizationIterateTraining extends BayesianOptimizationEvent {
+  final BuildContext context;
+  final BayesianOptimizationTrainingResult trainingResult;
+  final List<bool> updateList;
+
+  /// Constructor for iterating Bayesian Optimization training.
+  ///
+  /// - [context]: The build context.
+  /// - [trainingResult]: The training result to iterate from.
+  BayesianOptimizationIterateTraining(this.context, this.trainingResult, this.updateList);
+}
+
 @immutable
 final class BayesianOptimizationState extends BiocentralCommandState<BayesianOptimizationState> {
   const BayesianOptimizationState(super.stateInformation, super.status);
@@ -107,10 +119,8 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
   ) : super(const BayesianOptimizationState.idle(), eventBus) {
     on<BayesianOptimizationTrainingStarted>(_onTrainingStarted);
     on<BayesianOptimizationLoadPreviousTrainings>(_onLoadPreviousTrainings);
+    on<BayesianOptimizationIterateTraining>(_onIterateTraining);
   }
-
-  List<BayesianOptimizationTrainingResult>? get previousResults =>
-      _bayesianOptimizationRepository.previousTrainingResults;
 
   BayesianOptimizationTrainingResult? get currentResult => _bayesianOptimizationRepository.currentResult;
 
@@ -128,10 +138,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         await FilePicker.platform.pickFiles(allowedExtensions: ['json'], type: FileType.custom, withData: kIsWeb);
 
     if (result != null) {
-      _bayesianOptimizationRepository.previousTrainingResults = [];
-      for (PlatformFile file in result.files) {
-        _bayesianOptimizationRepository.addPickedPreviousTrainingResults(file.bytes);
-      }
+      _bayesianOptimizationRepository.addPickedPreviousTrainingResults(result.files.first.bytes);
       emit(
         state.newState(
           const BiocentralCommandStateInformation(information: 'Previous Training Loaded'),
@@ -226,5 +233,61 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         },
       );
     }
+  }
+
+  /// Handles the iteration of Bayesian Optimization training.
+  ///
+  /// - [event]: The event containing the training result to iterate from.
+  /// - [emit]: Emits the new state.
+  Future<void> _onIterateTraining(
+    BayesianOptimizationIterateTraining event,
+    Emitter<BayesianOptimizationState> emit,
+  ) async {
+    emit(state.setOperating(information: 'Updating database and preparing next iteration...'));
+
+    final Map<String, dynamic> scoreUpdates = {};
+    for (int i = 0; i < event.updateList.length; i++) {
+      if (event.updateList[i]) {
+        scoreUpdates[event.trainingResult.results![i].proteinId!] = event.trainingResult.results![i].score;
+      }
+    }
+    // Show the training dialog with pre-selected configuration
+    final config = event.trainingResult.trainingConfig ?? {};
+    showDialog(
+      context: event.context,
+      builder: (BuildContext context) {
+        return StartBOTrainingDialog(
+          (
+            TaskType? selectedTask,
+            String? selectedFeature,
+            BayesianOptimizationModelTypes? selectedModel,
+            double exploitationExplorationValue,
+            PredefinedEmbedder? selectedEmbedder, {
+            String? optimizationType,
+            double? targetValue,
+            double? targetRangeMin,
+            double? targetRangeMax,
+            bool? desiredBooleanValue,
+          }) {
+            add(
+              BayesianOptimizationTrainingStarted(
+                event.context,
+                selectedTask,
+                selectedFeature,
+                selectedModel,
+                exploitationExplorationValue,
+                selectedEmbedder,
+                optimizationType: optimizationType,
+                targetValue: targetValue,
+                targetRangeMin: targetRangeMin,
+                targetRangeMax: targetRangeMax,
+                desiredBooleanValue: desiredBooleanValue,
+              ),
+            );
+          },
+        );
+      },
+    );
+    emit(state.setFinished(information: 'Database updated and training dialog shown'));
   }
 }

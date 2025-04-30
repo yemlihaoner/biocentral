@@ -49,7 +49,7 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
                         ),
                       ],
                     );
-                  } else if (bloc.currentResult == null && bloc.previousResults == null) {
+                  } else if (bloc.currentResult == null) {
                     return const TabBarView(
                       children: [
                         Center(
@@ -69,29 +69,6 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
                         ),
                         BayesianOptimizationDatabaseGridView(
                           data: bloc.currentResult,
-                        ),
-                      ],
-                    );
-                  } else if (bloc.previousResults != null) {
-                    return TabBarView(
-                      children: [
-                        BayesianOptimizationPlotView(
-                          yLabel: 'Utility',
-                          data: bloc.previousResults?.last,
-                        ),
-                        BayesianOptimizationDatabaseGridView(
-                          data: bloc.previousResults?.last,
-                        ),
-                      ],
-                    );
-                  } else if (bloc.previousResults?.isEmpty ?? true) {
-                    return const TabBarView(
-                      children: [
-                        Center(
-                          child: Text('No previous trainings'),
-                        ),
-                        Center(
-                          child: Text('No previous trainings'),
                         ),
                       ],
                     );

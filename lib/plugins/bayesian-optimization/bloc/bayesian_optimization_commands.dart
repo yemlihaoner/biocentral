@@ -1,3 +1,4 @@
+import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/plugins/bayesian-optimization/data/bayesian_optimization_client.dart';
 import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
 import 'package:biocentral/plugins/prediction_models/data/biotrainer_file_handler.dart';
@@ -113,9 +114,25 @@ class TransferBOTrainingConfigCommand extends BiocentralCommand<BayesianOptimiza
         yield left(state.setErrored(information: 'Could not retrieve model files! Error: ${error.message}'));
         return;
       }, (modelResults) async* {
+        final List<double> actualValues = [];
+        final featureName = _trainingConfiguration['feature_name'];
+        final actualFeatureName = 'ACTUAL_$featureName';
+
+        for (var result in modelResults.results!) {
+          if (result.proteinId != null) {
+            final protein = _biocentralDatabase.getEntityById(result.proteinId!) as Protein?;
+            final actualValue = protein?.attributes[actualFeatureName];
+            actualValues
+                .add(actualValue != null && actualValue.isNotEmpty ? (double.tryParse(actualValue) ?? -99) : -99);
+          } else {
+            actualValues.add(-99);
+          }
+        }
+
         yield right(
           BayesianOptimizationTrainingResult(
             results: modelResults.results,
+            actualValues: actualValues,
             trainingConfig: _trainingConfiguration,
             taskID: taskID,
           ),

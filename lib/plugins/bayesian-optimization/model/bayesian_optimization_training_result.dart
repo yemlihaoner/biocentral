@@ -4,23 +4,43 @@ import 'package:flutter/foundation.dart';
 @immutable
 class BayesianOptimizationTrainingResult extends Equatable {
   final List<BayesianOptimizationTrainingResultData>? results;
+  final List<double>? actualValues;
   final Map<String, dynamic>? trainingConfig;
   final String? taskID;
 
   const BayesianOptimizationTrainingResult({
     required this.results,
+    this.actualValues,
     this.trainingConfig,
     this.taskID,
   });
+
+  BayesianOptimizationTrainingResult copyWith({
+    List<BayesianOptimizationTrainingResultData>? results,
+    List<double>? actualValues,
+    Map<String, dynamic>? trainingConfig,
+    String? taskID,
+  }) {
+    return BayesianOptimizationTrainingResult(
+      results: results ?? this.results,
+      actualValues: actualValues ?? this.actualValues,
+      trainingConfig: trainingConfig ?? this.trainingConfig,
+      taskID: taskID ?? this.taskID,
+    );
+  }
 
   /// Creates a [BayesianOptimizationTrainingResult] from a JSON map
   factory BayesianOptimizationTrainingResult.fromJson(Map<String, dynamic> json) {
     return BayesianOptimizationTrainingResult(
       results: (json['results'] as List<dynamic>?)
-          ?.map((data) => BayesianOptimizationTrainingResultData.fromJson(data as Map<String, dynamic>))
+          ?.map((data) => BayesianOptimizationTrainingResultData.fromJson(data))
           .toList(),
       trainingConfig: json['trainingConfig'] as Map<String, dynamic>?,
       taskID: json['taskID'] as String,
+      actualValues: (json['actualValues'] as List<dynamic>?)?.map((value) {
+        if (value is double) return value;
+        return double.tryParse(value.toString()) ?? 0.0;
+      }).toList(),
     );
   }
 
@@ -28,13 +48,14 @@ class BayesianOptimizationTrainingResult extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'results': results?.map((data) => data.toJson()).toList() ?? [],
+      'actualValues': actualValues,
       'trainingConfig': trainingConfig,
       'taskID': taskID,
     };
   }
 
   @override
-  List<Object?> get props => [results, trainingConfig, taskID];
+  List<Object?> get props => [results, actualValues, trainingConfig, taskID];
 }
 
 class BayesianOptimizationTrainingResultData extends Equatable {

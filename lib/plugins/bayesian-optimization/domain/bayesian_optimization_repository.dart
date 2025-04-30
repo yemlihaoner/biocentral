@@ -19,16 +19,6 @@ class BayesianOptimizationRepository {
   BayesianOptimizationRepository(this._projectRepository);
 
   BayesianOptimizationTrainingResult? currentResult;
-  List<BayesianOptimizationTrainingResult>? previousTrainingResults;
-
-  void addPreviousTrainingResults(BayesianOptimizationTrainingResult r) {
-    previousTrainingResults ??= [];
-    previousTrainingResults?.add(r);
-  }
-
-  void setPreviousTrainingResults(List<BayesianOptimizationTrainingResult> results) {
-    previousTrainingResults = results;
-  }
 
   void setCurrentResult(BayesianOptimizationTrainingResult? r) {
     currentResult = r;
@@ -37,7 +27,7 @@ class BayesianOptimizationRepository {
 
   void addPickedPreviousTrainingResults(Uint8List? bytes) {
     final BayesianOptimizationTrainingResult result = convertJsonToTrainingResult(bytes);
-    addPreviousTrainingResults(result);
+    setCurrentResult(result);
   }
 
   /// Saves the current training result to a JSON file.
