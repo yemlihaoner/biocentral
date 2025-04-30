@@ -170,8 +170,8 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
           _ => 'value',
         },
         'model_type': event.selectedModel?.name,
-        'embedder_name': event.selectedEmbedder?.name,
-        'feature': event.selectedFeature.toString(),
+        // 'embedder_name': event.selectedEmbedder?.name, // TODO: Fix custom embeddings problem
+        'feature_name': event.selectedFeature.toString(),
         'coefficient': event.exploitationExplorationValue.toString(),
       };
 
@@ -188,12 +188,11 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         config = {
           ...config,
           'discrete': false,
-          'target_interval_lb': event.targetRangeMin?.toString() ?? event.targetValue?.toString() ?? '-Infinity',
-          'target_interval_ub': event.targetRangeMax?.toString() ?? event.targetValue?.toString() ?? 'Infinity',
-          'value_preference': switch (event.optimizationType.toString()) {
-            'Maximize' => 'maximize',
-            'Minimize' => 'minimize',
-            _ => 'neutral',
+          'target_lb': event.targetRangeMin?.toString() ?? event.targetValue?.toString() ?? '-Infinity',
+          'target_ub': event.targetRangeMax?.toString() ?? event.targetValue?.toString() ?? 'Infinity',
+          'target_value': switch (event.optimizationType.toString()) {
+            'Target Value' => event.targetValue.toString(),
+            _ => '',
           },
         };
       }
