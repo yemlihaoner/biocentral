@@ -170,7 +170,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
           _ => 'value',
         },
         'model_type': event.selectedModel?.name,
-        // 'embedder_name': event.selectedEmbedder?.name, // TODO: Fix custom embeddings problem
+        'embedder_name': event.selectedEmbedder?.biotrainerName,
         'feature_name': event.selectedFeature.toString(),
         'coefficient': event.exploitationExplorationValue.toString(),
       };
