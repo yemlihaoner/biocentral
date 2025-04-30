@@ -113,7 +113,13 @@ class TransferBOTrainingConfigCommand extends BiocentralCommand<BayesianOptimiza
         yield left(state.setErrored(information: 'Could not retrieve model files! Error: ${error.message}'));
         return;
       }, (modelResults) async* {
-        yield right(modelResults);
+        yield right(
+          BayesianOptimizationTrainingResult(
+            results: modelResults.results,
+            trainingConfig: _trainingConfiguration,
+            taskID: taskID,
+          ),
+        );
         yield left(state.setFinished(information: 'Finished training model!'));
       });
     });

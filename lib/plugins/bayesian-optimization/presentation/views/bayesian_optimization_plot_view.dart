@@ -23,9 +23,9 @@ class BayesianOptimizationPlotView extends StatelessWidget {
 
   /// Gets the x-axis label from the training config
   String get xLabel {
-    final feature = data?.trainingConfig?['feature'] as String? ?? 'Feature';
-    final embedder = data?.trainingConfig?['selected_embedder'] as String? ?? 'Embedder';
-    return '$feature $embedder';
+    final feature = data?.trainingConfig?['feature_name'] as String? ?? 'Feature';
+    final embedder = data?.trainingConfig?['embedder_name'] as String? ?? 'Embedder';
+    return '$feature - $embedder';
   }
 
   /// Calculates the minimum and maximum values for the y-axis

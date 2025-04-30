@@ -5,10 +5,12 @@ import 'package:flutter/foundation.dart';
 class BayesianOptimizationTrainingResult extends Equatable {
   final List<BayesianOptimizationTrainingResultData>? results;
   final Map<String, dynamic>? trainingConfig;
+  final String? taskID;
 
   const BayesianOptimizationTrainingResult({
     required this.results,
     this.trainingConfig,
+    this.taskID,
   });
 
   /// Creates a [BayesianOptimizationTrainingResult] from a JSON map
@@ -18,6 +20,7 @@ class BayesianOptimizationTrainingResult extends Equatable {
           ?.map((data) => BayesianOptimizationTrainingResultData.fromJson(data as Map<String, dynamic>))
           .toList(),
       trainingConfig: json['trainingConfig'] as Map<String, dynamic>?,
+      taskID: json['taskID'] as String,
     );
   }
 
@@ -26,11 +29,12 @@ class BayesianOptimizationTrainingResult extends Equatable {
     return {
       'results': results?.map((data) => data.toJson()).toList() ?? [],
       'trainingConfig': trainingConfig,
+      'taskID': taskID,
     };
   }
 
   @override
-  List<Object?> get props => [results, trainingConfig];
+  List<Object?> get props => [results, trainingConfig, taskID];
 }
 
 class BayesianOptimizationTrainingResultData extends Equatable {
@@ -83,5 +87,5 @@ class BayesianOptimizationTrainingResultData extends Equatable {
   }
 
   @override
-  List<Object?> get props => [proteinId, sequence, score];
+  List<Object?> get props => [proteinId, sequence, score, uncertainty, mean];
 }

@@ -215,8 +215,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
           .forEach(
         (either) {
           either.match((l) => emit(l), (r) {
-            _bayesianOptimizationRepository
-                .setCurrentResult(BayesianOptimizationTrainingResult(results: r.results, trainingConfig: config));
+            _bayesianOptimizationRepository.setCurrentResult(r);
             emit(
               state.setFinished(
                 information: 'Training completed',

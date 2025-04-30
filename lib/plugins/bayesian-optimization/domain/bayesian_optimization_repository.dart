@@ -49,9 +49,8 @@ class BayesianOptimizationRepository {
     if (currentResult == null) return;
 
     final String jsonString = convertTrainingResultToJson(currentResult);
-
     await _projectRepository.handleExternalSave(
-      fileName: 'bayesian_optimization_results.json',
+      fileName: 'bo_result_${currentResult.taskID!}.json',
       contentFunction: () async => jsonString,
     );
   }
