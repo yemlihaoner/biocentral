@@ -170,6 +170,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
           _ => 'value',
         },
         'model_type': event.selectedModel?.name,
+        // Does not support other embedders than One_hot. Backend loads indefinitely
         'embedder_name': event.selectedEmbedder?.biotrainerName,
         'feature_name': event.selectedFeature.toString(),
         'coefficient': event.exploitationExplorationValue.toString(),
@@ -180,8 +181,8 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         config = {
           ...config,
           'discrete': true,
-          'discrete_labels': ['true', 'false'],
-          'discrete_targets': event.desiredBooleanValue.toString(),
+          'discrete_labels': ['0', '1'],
+          'discrete_targets': event.desiredBooleanValue.toString().toLowerCase() == 'true' ? ['1'] : ['0'],
         };
         // Continuous:
       } else {
