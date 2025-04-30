@@ -75,6 +75,7 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
             onTap: () {
               openStartTrainingDialog(context);
             },
+            requiredServices: const ['protein_service'],
           ),
         ),
         BiocentralTooltip(
