@@ -170,7 +170,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
           _ => 'value',
         },
         'model_type': event.selectedModel?.name,
-        // 'selectedEmbedder': event.selectedEmbedder?.name, //TODO: Tell Shuze to add
+        'embedder_name': event.selectedEmbedder?.name,
         'feature': event.selectedFeature.toString(),
         'coefficient': event.exploitationExplorationValue.toString(),
       };
