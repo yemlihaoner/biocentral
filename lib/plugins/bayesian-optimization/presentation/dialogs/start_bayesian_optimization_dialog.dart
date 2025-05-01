@@ -7,7 +7,7 @@ import 'package:biocentral/sdk/presentation/widgets/biocentral_entity_type_selec
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../embeddings/data/predefined_embedders.dart';
+import 'package:biocentral/plugins/embeddings/data/predefined_embedders.dart';
 
 // Dialog Widget
 class StartBOTrainingDialog extends StatelessWidget {
@@ -72,13 +72,13 @@ class StartBOTrainingDialog extends StatelessWidget {
           final bloc = context.read<BOTrainingDialogBloc>();
 
           // Check if target range is valid (min < max)
-          bool isTargetRangeValid = state.optimizationType != 'Target Range' ||
+          final bool isTargetRangeValid = state.optimizationType != 'Target Range' ||
               (state.targetRangeMin != null &&
                   state.targetRangeMax != null &&
                   state.targetRangeMin! < state.targetRangeMax!);
 
           // Check if all required fields are filled to enable the start button
-          bool canStartTraining = state.selectedTask != null &&
+          final bool canStartTraining = state.selectedTask != null &&
               state.selectedFeature != null &&
               state.selectedModel != null &&
               state.selectedEmbedder != null &&
@@ -140,7 +140,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                         const SizedBox(width: 16),
                         // Feature Selection
                         Expanded(
-                          flex: 1, // Takes up 1/3 of the row
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -206,7 +205,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                               children: [
                                 // Optimization Type (1/3)
                                 Expanded(
-                                  flex: 1,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -228,7 +226,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                                 const SizedBox(width: 16),
                                 // Min Value (1/3)
                                 Expanded(
-                                  flex: 1,
                                   child: TextFormField(
                                     decoration: const InputDecoration(labelText: 'Min'),
                                     keyboardType: TextInputType.number,
@@ -243,7 +240,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                                 const SizedBox(width: 16),
                                 // Max Value (1/3)
                                 Expanded(
-                                  flex: 1,
                                   child: TextFormField(
                                     decoration: const InputDecoration(labelText: 'Max'),
                                     keyboardType: TextInputType.number,
@@ -304,7 +300,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                       children: [
                         // Embedder Selection (1/2)
                         Expanded(
-                          flex: 1,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -314,10 +309,12 @@ class StartBOTrainingDialog extends StatelessWidget {
                                 hint: const Text('Choose embedder'),
                                 isExpanded: true,
                                 items: state.availableEmbedders
-                                    .map((embedder) => DropdownMenuItem(
-                                          value: embedder,
-                                          child: Text(embedder.name),
-                                        ))
+                                    .map(
+                                      (embedder) => DropdownMenuItem(
+                                        value: embedder,
+                                        child: Text(embedder.name),
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: (value) {
                                   if (value != null) bloc.add(EmbedderSelected(value));
@@ -329,7 +326,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                         const SizedBox(width: 16),
                         // Model Selection (1/2)
                         Expanded(
-                          flex: 1,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -369,8 +365,6 @@ class StartBOTrainingDialog extends StatelessWidget {
                     const Text('Exploitation vs Exploration:', style: TextStyle(fontSize: 16)),
                     Slider(
                       value: state.exploitationExplorationValue,
-                      min: 0,
-                      max: 1,
                       divisions: 10,
                       label: state.exploitationExplorationValue.toStringAsFixed(1),
                       onChanged: (value) => bloc.add(ExploitationExplorationUpdated(value)),

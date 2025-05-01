@@ -5,7 +5,7 @@ import 'package:biocentral/sdk/domain/biocentral_database_repository.dart';
 import 'package:biocentral/sdk/domain/biocentral_project_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../embeddings/data/predefined_embedders.dart';
+import 'package:biocentral/plugins/embeddings/data/predefined_embedders.dart';
 
 // Define an enum for task types
 enum TaskType {

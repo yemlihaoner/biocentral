@@ -59,23 +59,8 @@ class TransferBOTrainingConfigCommand extends BiocentralCommand<BayesianOptimiza
     );
 
     // Transfer training files to the server
-    final transferEitherSequences = await _boClient.transferFile(
-      databaseHash,
-      StorageFileType.sequences,
-      () async => fileRecord.$1,
-    );
-    final transferEitherLabels = await _boClient.transferFile(
-      databaseHash,
-      StorageFileType.labels,
-      () async => fileRecord.$2,
-    );
-    final transferEitherMasks = await _boClient.transferFile(
-      databaseHash,
-      StorageFileType.masks,
-      () async => fileRecord.$3,
-    );
-
-    if (transferEitherSequences.isLeft() || transferEitherLabels.isLeft() || transferEitherMasks.isLeft()) {
+    final transferResults = await _transferTrainingFiles(databaseHash, fileRecord);
+    if (transferResults.isLeft()) {
       yield left(
         state.setErrored(
           information: 'Error transferring training files to server!',
@@ -97,37 +82,22 @@ class TransferBOTrainingConfigCommand extends BiocentralCommand<BayesianOptimiza
         biotrainerConfig: _trainingConfiguration,
         failOnConflict: false,
       )..setTraining();
+
       final T trainingState =
           state.setOperating(information: 'Training model..').copyWith(copyMap: {'trainingModel': initialModel});
       yield left(trainingState);
 
       await for (String? currentModel in _boClient.biotrainerTrainingTaskStream(taskID, '')) {
-        if (currentModel == null) {
-          continue;
-        }
+        if (currentModel == null) continue;
         yield left(trainingState);
       }
 
-      // Retrieve the results after training is complete
       final modelResultsEither = await _boClient.getModelResults(databaseHash, taskID);
       yield* modelResultsEither.match((error) async* {
         yield left(state.setErrored(information: 'Could not retrieve model files! Error: ${error.message}'));
         return;
       }, (modelResults) async* {
-        final List<double> actualValues = [];
-        final featureName = _trainingConfiguration['feature_name'];
-        final actualFeatureName = 'ACTUAL_$featureName';
-
-        for (var result in modelResults.results!) {
-          if (result.proteinId != null) {
-            final protein = _biocentralDatabase.getEntityById(result.proteinId!) as Protein?;
-            final actualValue = protein?.attributes[actualFeatureName];
-            actualValues
-                .add(actualValue != null && actualValue.isNotEmpty ? (double.tryParse(actualValue) ?? -99) : -99);
-          } else {
-            actualValues.add(-99);
-          }
-        }
+        final actualValues = await _extractActualValues(modelResults);
 
         yield right(
           BayesianOptimizationTrainingResult(
@@ -140,6 +110,51 @@ class TransferBOTrainingConfigCommand extends BiocentralCommand<BayesianOptimiza
         yield left(state.setFinished(information: 'Finished training model!'));
       });
     });
+  }
+
+  /// Transfers training files to the server.
+  Future<Either<BiocentralException, void>> _transferTrainingFiles(
+    String databaseHash,
+    (String, String, String) fileRecord,
+  ) async {
+    final transferEitherSequences = await _boClient.transferFile(
+      databaseHash,
+      StorageFileType.sequences,
+      () async => fileRecord.$1,
+    );
+    final transferEitherLabels = await _boClient.transferFile(
+      databaseHash,
+      StorageFileType.labels,
+      () async => fileRecord.$2,
+    );
+    final transferEitherMasks = await _boClient.transferFile(
+      databaseHash,
+      StorageFileType.masks,
+      () async => fileRecord.$3,
+    );
+
+    if (transferEitherSequences.isLeft() || transferEitherLabels.isLeft() || transferEitherMasks.isLeft()) {
+      return left(BiocentralNetworkException(message: 'Failed to transfer training files'));
+    }
+    return right(null);
+  }
+
+  /// Extracts actual values from model results.
+  Future<List<double>> _extractActualValues(BayesianOptimizationTrainingResult modelResults) async {
+    final List<double> actualValues = [];
+    final featureName = _trainingConfiguration['feature_name'];
+    final actualFeatureName = 'ACTUAL_$featureName';
+
+    for (var result in modelResults.results!) {
+      if (result.proteinId != null) {
+        final protein = _biocentralDatabase.getEntityById(result.proteinId!) as Protein?;
+        final actualValue = protein?.attributes[actualFeatureName];
+        actualValues.add(actualValue != null && actualValue.isNotEmpty ? (double.tryParse(actualValue) ?? -99) : -99);
+      } else {
+        actualValues.add(-99);
+      }
+    }
+    return actualValues;
   }
 
   @override
