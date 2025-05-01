@@ -138,6 +138,120 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
 
   BayesianOptimizationTrainingResult? get currentResult => _bayesianOptimizationRepository.currentResult;
 
+  /// Updates protein scores in the database based on training results
+  Future<void> _updateProteinScores(
+    BiocentralDatabase proteinDatabase,
+    Map<String, dynamic> config,
+    BayesianOptimizationTrainingResult trainingResult,
+    List<bool> updateList,
+  ) async {
+    for (int i = 0; i < updateList.length; i++) {
+      if (updateList[i]) {
+        final String proteinId = trainingResult.results![i].proteinId!;
+        final double? score = trainingResult.results![i].score;
+        if (score != null) {
+          final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
+          if (entity != null && entity is Protein) {
+            final Map<String, String> newAttributes = Map.from(entity.attributes.toMap());
+            newAttributes[config['feature_name']] = score.toString();
+            final Protein updatedProtein = entity.copyWith(attributes: CustomAttributes(newAttributes));
+            proteinDatabase.updateEntity(proteinId, updatedProtein);
+          }
+        }
+      }
+    }
+    _eventBus.fire(BiocentralDatabaseUpdatedEvent());
+  }
+
+  /// Extracts configuration values from the training result
+  Map<String, dynamic> _extractConfigValues(Map<String, dynamic> config) {
+    // Extract basic configuration values
+    final bool isDiscrete = config['discrete'] == true;
+    final String featureName = config['feature_name']?.toString() ?? '';
+    final String modelType = config['model_type']?.toString() ?? '';
+    final String coefficient = config['coefficient']?.toString() ?? '0.5';
+    final String embedderName = config['embedder_name']?.toString() ?? '';
+
+    // Get task type based on discrete flag
+    final TaskType task = isDiscrete ? TaskType.findHighestProbability : TaskType.findOptimalValues;
+
+    // Get model type with fallback to first available model
+    final BayesianOptimizationModelTypes model = BayesianOptimizationModelTypes.values.firstWhere(
+      (model) => model.name == modelType,
+      orElse: () => BayesianOptimizationModelTypes.values.first,
+    );
+
+    // Get embedder with fallback to first available embedder
+    final PredefinedEmbedder embedder = PredefinedEmbedderContainer.predefinedEmbedders().firstWhere(
+      (embedder) => embedder.biotrainerName == embedderName,
+      orElse: () => PredefinedEmbedderContainer.predefinedEmbedders().first,
+    );
+
+    // Parse exploitation/exploration coefficient
+    final double exploitationExploration = double.tryParse(coefficient) ?? 0.5;
+
+    // Handle discrete vs continuous optimization
+    if (isDiscrete) {
+      final bool desiredBooleanValue = config['discrete_targets']?.contains('1') ?? false;
+      return {
+        'task': task,
+        'feature': featureName,
+        'model': model,
+        'exploitationExploration': exploitationExploration,
+        'embedder': embedder,
+        'desiredBooleanValue': desiredBooleanValue,
+      };
+    }
+
+    // Handle continuous optimization
+    final String optimizationMode = config['optimization_mode']?.toString() ?? '';
+    final String targetValue = config['target_value']?.toString() ?? '';
+    final String targetLb = config['target_lb']?.toString() ?? '-Infinity';
+    final String targetUb = config['target_ub']?.toString() ?? 'Infinity';
+
+    final String optimizationType = switch (optimizationMode) {
+      'maximize' => 'Maximize',
+      'minimize' => 'Minimize',
+      'interval' => 'Target Range',
+      'value' => 'Target Value',
+      _ => 'Maximize', // Default to maximize if unknown
+    };
+
+    return {
+      'task': task,
+      'feature': featureName,
+      'model': model,
+      'exploitationExploration': exploitationExploration,
+      'embedder': embedder,
+      'optimizationType': optimizationType,
+      'targetValue': double.tryParse(targetValue),
+      'targetRangeMin': double.tryParse(targetLb),
+      'targetRangeMax': double.tryParse(targetUb),
+    };
+  }
+
+  /// Starts training with the given configuration
+  void _startTraining(
+    BuildContext context,
+    Map<String, dynamic> config,
+  ) {
+    add(
+      BayesianOptimizationTrainingStarted(
+        context,
+        config['task'],
+        config['feature'],
+        config['model'],
+        config['exploitationExploration'],
+        config['embedder'],
+        optimizationType: config['optimizationType'],
+        targetValue: config['targetValue'],
+        targetRangeMin: config['targetRangeMin'],
+        targetRangeMax: config['targetRangeMax'],
+        desiredBooleanValue: config['desiredBooleanValue'],
+      ),
+    );
+  }
+
   /// Handles the loading of previous training results.
   ///
   /// - [event]: The event to load previous trainings.
@@ -260,65 +374,15 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     emit(state.setOperating(information: 'Updating database and preparing next iteration...'));
     final config = event.trainingResult.trainingConfig ?? {};
 
-    // Get the protein repository
     final BiocentralDatabase? proteinDatabase = _biocentralDatabaseRepository.getFromType(Protein);
     if (proteinDatabase == null) {
       emit(state.setErrored(information: 'Could not find protein database!'));
       return;
     }
 
-    // Update proteins with new scores
-    for (int i = 0; i < event.updateList.length; i++) {
-      if (event.updateList[i]) {
-        final String proteinId = event.trainingResult.results![i].proteinId!;
-        final double? score = event.trainingResult.results![i].score;
-        if (score != null) {
-          final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
-          if (entity != null && entity is Protein) {
-            final Map<String, String> newAttributes = Map.from(entity.attributes.toMap());
-            newAttributes[config['feature_name']] = score.toString();
-            final Protein updatedProtein = entity.copyWith(attributes: CustomAttributes(newAttributes));
-            proteinDatabase.updateEntity(proteinId, updatedProtein);
-          }
-        }
-      }
-    }
+    await _updateProteinScores(proteinDatabase, config, event.trainingResult, event.updateList);
 
-    // Fire database updated event to trigger view updates
-    _eventBus.fire(BiocentralDatabaseUpdatedEvent());
-
-    // Extract previous configuration values
-    final TaskType? previousTask =
-        config['discrete'] == true ? TaskType.findHighestProbability : TaskType.findOptimalValues;
-    final String? previousFeature = config['feature_name'];
-    final BayesianOptimizationModelTypes? previousModel = BayesianOptimizationModelTypes.values.firstWhere(
-        (model) => model.name == config['model_type'],
-        orElse: () => BayesianOptimizationModelTypes.values.first);
-    final double previousExploitationExploration = double.tryParse(config['coefficient'] ?? '0.5') ?? 0.5;
-    final PredefinedEmbedder? previousEmbedder = PredefinedEmbedderContainer.predefinedEmbedders().firstWhere(
-        (embedder) => embedder.biotrainerName == config['embedder_name'],
-        orElse: () => PredefinedEmbedderContainer.predefinedEmbedders().first);
-
-    String? previousOptimizationType;
-    double? previousTargetValue;
-    double? previousTargetRangeMin;
-    double? previousTargetRangeMax;
-    bool? previousDesiredBooleanValue;
-
-    if (config['discrete'] == true) {
-      previousDesiredBooleanValue = config['discrete_targets']?.contains('1') ?? false;
-    } else {
-      previousOptimizationType = switch (config['optimization_mode']) {
-        'maximize' => 'Maximize',
-        'minimize' => 'Minimize',
-        'interval' => 'Target Range',
-        'value' => 'Target Value',
-        _ => null,
-      };
-      previousTargetValue = double.tryParse(config['target_value'] ?? '');
-      previousTargetRangeMin = double.tryParse(config['target_lb'] ?? '');
-      previousTargetRangeMax = double.tryParse(config['target_ub'] ?? '');
-    }
+    final configValues = _extractConfigValues(config);
 
     showDialog(
       context: event.context,
@@ -352,16 +416,16 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
               ),
             );
           },
-          initialTask: previousTask,
-          initialFeature: previousFeature,
-          initialModel: previousModel,
-          initialExploitationExploration: previousExploitationExploration,
-          initialEmbedder: previousEmbedder,
-          initialOptimizationType: previousOptimizationType,
-          initialTargetValue: previousTargetValue,
-          initialTargetRangeMin: previousTargetRangeMin,
-          initialTargetRangeMax: previousTargetRangeMax,
-          initialDesiredBooleanValue: previousDesiredBooleanValue,
+          initialTask: configValues['task'],
+          initialFeature: configValues['feature'],
+          initialModel: configValues['model'],
+          initialExploitationExploration: configValues['exploitationExploration'],
+          initialEmbedder: configValues['embedder'],
+          initialOptimizationType: configValues['optimizationType'],
+          initialTargetValue: configValues['targetValue'],
+          initialTargetRangeMin: configValues['targetRangeMin'],
+          initialTargetRangeMax: configValues['targetRangeMax'],
+          initialDesiredBooleanValue: configValues['desiredBooleanValue'],
         );
       },
     );
@@ -375,82 +439,16 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     emit(state.setOperating(information: 'Updating database and preparing next iteration...'));
     final config = event.trainingResult.trainingConfig ?? {};
 
-    // Get the protein repository
     final BiocentralDatabase? proteinDatabase = _biocentralDatabaseRepository.getFromType(Protein);
     if (proteinDatabase == null) {
       emit(state.setErrored(information: 'Could not find protein database!'));
       return;
     }
 
-    // Update proteins with new scores
-    for (int i = 0; i < event.updateList.length; i++) {
-      if (event.updateList[i]) {
-        final String proteinId = event.trainingResult.results![i].proteinId!;
-        final double? score = event.trainingResult.results![i].score;
-        if (score != null) {
-          final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
-          if (entity != null && entity is Protein) {
-            final Map<String, String> newAttributes = Map.from(entity.attributes.toMap());
-            newAttributes[config['feature_name']] = score.toString();
-            final Protein updatedProtein = entity.copyWith(attributes: CustomAttributes(newAttributes));
-            proteinDatabase.updateEntity(proteinId, updatedProtein);
-          }
-        }
-      }
-    }
+    await _updateProteinScores(proteinDatabase, config, event.trainingResult, event.updateList);
 
-    // Fire database updated event to trigger view updates
-    _eventBus.fire(BiocentralDatabaseUpdatedEvent());
-
-    // Extract previous configuration values
-    final TaskType? previousTask =
-        config['discrete'] == true ? TaskType.findHighestProbability : TaskType.findOptimalValues;
-    final String? previousFeature = config['feature_name'];
-    final BayesianOptimizationModelTypes? previousModel = BayesianOptimizationModelTypes.values.firstWhere(
-        (model) => model.name == config['model_type'],
-        orElse: () => BayesianOptimizationModelTypes.values.first);
-    final double previousExploitationExploration = double.tryParse(config['coefficient'] ?? '0.5') ?? 0.5;
-    final PredefinedEmbedder? previousEmbedder = PredefinedEmbedderContainer.predefinedEmbedders().firstWhere(
-        (embedder) => embedder.biotrainerName == config['embedder_name'],
-        orElse: () => PredefinedEmbedderContainer.predefinedEmbedders().first);
-
-    String? previousOptimizationType;
-    double? previousTargetValue;
-    double? previousTargetRangeMin;
-    double? previousTargetRangeMax;
-    bool? previousDesiredBooleanValue;
-
-    if (config['discrete'] == true) {
-      previousDesiredBooleanValue = config['discrete_targets']?.contains('1') ?? false;
-    } else {
-      previousOptimizationType = switch (config['optimization_mode']) {
-        'maximize' => 'Maximize',
-        'minimize' => 'Minimize',
-        'interval' => 'Target Range',
-        'value' => 'Target Value',
-        _ => null,
-      };
-      previousTargetValue = double.tryParse(config['target_value'] ?? '');
-      previousTargetRangeMin = double.tryParse(config['target_lb'] ?? '');
-      previousTargetRangeMax = double.tryParse(config['target_ub'] ?? '');
-    }
-
-    // Directly start training with the same configuration
-    add(
-      BayesianOptimizationTrainingStarted(
-        event.context,
-        previousTask,
-        previousFeature,
-        previousModel,
-        previousExploitationExploration,
-        previousEmbedder,
-        optimizationType: previousOptimizationType,
-        targetValue: previousTargetValue,
-        targetRangeMin: previousTargetRangeMin,
-        targetRangeMax: previousTargetRangeMax,
-        desiredBooleanValue: previousDesiredBooleanValue,
-      ),
-    );
+    final configValues = _extractConfigValues(config);
+    _startTraining(event.context, configValues);
 
     emit(state.setFinished(information: 'Database updated and training started'));
   }
