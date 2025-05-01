@@ -5,10 +5,12 @@ import 'package:pluto_grid/pluto_grid.dart';
 class IterateTrainingDialog extends StatefulWidget {
   final BayesianOptimizationTrainingResult currentResult;
   final Function(List<bool>) onStartIteration;
+  final Function(List<bool>) onStartDirectIteration;
 
   const IterateTrainingDialog({
     required this.currentResult,
     required this.onStartIteration,
+    required this.onStartDirectIteration,
     super.key,
   });
 
@@ -61,26 +63,28 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
   }
 
   List<PlutoRow> buildRows() {
-    var i = 0;
-    return editedResult.results!.map((result) {
-      return PlutoRow(
-        cells: {
-          'select': PlutoCell(value: boolList[i] ? 'true' : 'false'),
-          'proteinId': PlutoCell(value: result.proteinId),
-          'score': PlutoCell(value: result.score),
-          'actualValue': PlutoCell(value: editedResult.actualValues?[i++]),
-        },
-      );
-    }).toList();
+    return List.generate(
+      editedResult.results?.length ?? 0,
+      (index) {
+        final result = editedResult.results![index];
+        return PlutoRow(
+          cells: {
+            'select': PlutoCell(value: boolList[index] ? 'true' : 'false'),
+            'proteinId': PlutoCell(value: result.proteinId),
+            'score': PlutoCell(value: result.score),
+            'actualValue': PlutoCell(
+              value: editedResult.actualValues?[index] ?? 0.0,
+            ),
+          },
+        );
+      },
+    );
   }
 
   void handleCellValueChanged(PlutoGridOnChangedEvent event) {
     if (event.column.field == 'select') {
-      final rowIndex = event.rowIdx;
-      final newValue = event.value == 'true';
-
       setState(() {
-        boolList[rowIndex] = newValue;
+        boolList[event.rowIdx] = event.value == 'true';
       });
     }
   }
@@ -90,12 +94,11 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
     return Dialog(
       child: Container(
         width: 600,
-        height: 500,
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             const Text(
-              'Select Proteins for Training',
+              'Select Proteins for Iterative Training',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -120,10 +123,18 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
+                    widget.onStartDirectIteration(boolList);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Start with Same Config'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () {
                     widget.onStartIteration(boolList);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Start Training Iteration'),
+                  child: const Text('Start with New Config'),
                 ),
               ],
             ),

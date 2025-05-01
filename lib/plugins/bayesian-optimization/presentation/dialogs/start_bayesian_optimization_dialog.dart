@@ -24,7 +24,31 @@ class StartBOTrainingDialog extends StatelessWidget {
     bool? desiredBooleanValue,
   }) _startTraining;
 
-  const StartBOTrainingDialog(this._startTraining, {super.key});
+  final TaskType? initialTask;
+  final String? initialFeature;
+  final BayesianOptimizationModelTypes? initialModel;
+  final double initialExploitationExploration;
+  final PredefinedEmbedder? initialEmbedder;
+  final String? initialOptimizationType;
+  final double? initialTargetValue;
+  final double? initialTargetRangeMin;
+  final double? initialTargetRangeMax;
+  final bool? initialDesiredBooleanValue;
+
+  const StartBOTrainingDialog(
+    this._startTraining, {
+    this.initialTask,
+    this.initialFeature,
+    this.initialModel,
+    this.initialExploitationExploration = 0.5,
+    this.initialEmbedder,
+    this.initialOptimizationType,
+    this.initialTargetValue,
+    this.initialTargetRangeMin,
+    this.initialTargetRangeMax,
+    this.initialDesiredBooleanValue,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +56,16 @@ class StartBOTrainingDialog extends StatelessWidget {
       create: (context) => BOTrainingDialogBloc(
         context.read<BiocentralDatabaseRepository>(),
         context.read<BiocentralProjectRepository>(),
+        initialTask: initialTask,
+        initialFeature: initialFeature,
+        initialModel: initialModel,
+        initialExploitationExploration: initialExploitationExploration,
+        initialEmbedder: initialEmbedder,
+        initialOptimizationType: initialOptimizationType,
+        initialTargetValue: initialTargetValue,
+        initialTargetRangeMin: initialTargetRangeMin,
+        initialTargetRangeMax: initialTargetRangeMax,
+        initialDesiredBooleanValue: initialDesiredBooleanValue,
       ),
       child: BlocBuilder<BOTrainingDialogBloc, BOTrainingDialogState>(
         builder: (context, state) {
