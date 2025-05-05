@@ -296,6 +296,8 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         ),
       );
     } else {
+      _bayesianOptimizationRepository.clearCurrentResult();
+
       final String databaseHash = await biocentralDatabase.getHash();
       Map<String, dynamic> config = {
         'database_hash': databaseHash,

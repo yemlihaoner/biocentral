@@ -67,4 +67,9 @@ class BayesianOptimizationRepository {
   String convertTrainingResultToJson(BayesianOptimizationTrainingResult result) {
     return jsonEncode(result.toJson());
   }
+
+  // Clear the current training result from the repository to start a new training.
+  void clearCurrentResult() {
+    currentResult = null;
+  }
 }

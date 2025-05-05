@@ -24,49 +24,31 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
       title: 'Ranking',
       field: 'ranking',
       type: PlutoColumnType.text(),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'N',
-      footerColor: Colors.green,
     ),
     _createColumn(
       title: 'Protein ID',
       field: 'proteinId',
       type: PlutoColumnType.text(),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'N',
-      footerColor: Colors.green,
     ),
     _createColumn(
       title: 'Score',
       field: 'score',
       type: PlutoColumnType.number(format: '#,###.############'),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'Missing',
-      footerColor: Colors.red,
     ),
     _createColumn(
       title: 'Sequence',
       field: 'sequence',
       type: PlutoColumnType.text(),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'Missing',
-      footerColor: Colors.red,
     ),
     _createColumn(
       title: 'Uncertainty',
       field: 'uncertainty',
       type: PlutoColumnType.number(format: '#,###.############'),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'Missing',
-      footerColor: Colors.red,
     ),
     _createColumn(
       title: 'Prediction',
       field: 'mean',
       type: PlutoColumnType.number(format: '#,###.############'),
-      footerType: PlutoAggregateColumnType.count,
-      footerTitle: 'Missing',
-      footerColor: Colors.red,
     ),
   ];
 
@@ -112,33 +94,11 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     required String title,
     required String field,
     required PlutoColumnType type,
-    required PlutoAggregateColumnType footerType,
-    required String footerTitle,
-    required Color footerColor,
   }) {
     return PlutoColumn(
       title: title,
       field: field,
       type: type,
-      footerRenderer: (rendererContext) {
-        return PlutoAggregateColumnFooter(
-          rendererContext: rendererContext,
-          type: footerType,
-          filter: (PlutoCell plutoCell) => plutoCell.value == -1,
-          format: '#',
-          alignment: Alignment.center,
-          titleSpanBuilder: (text) {
-            return [
-              TextSpan(
-                text: footerTitle,
-                style: TextStyle(color: footerColor),
-              ),
-              const TextSpan(text: ': '),
-              TextSpan(text: text),
-            ];
-          },
-        );
-      },
     );
   }
 

@@ -64,7 +64,7 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
                     return TabBarView(
                       children: [
                         BayesianOptimizationPlotView(
-                          yLabel: 'Utility',
+                          yLabel: 'Score',
                           data: bloc.currentResult,
                         ),
                         BayesianOptimizationDatabaseGridView(

@@ -54,13 +54,6 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
         enableEditingMode: false,
       ),
       PlutoColumn(
-        title: 'Actual Value',
-        field: 'actualValue',
-        type: PlutoColumnType.number(format: '#,###.############'),
-        width: 150,
-        enableEditingMode: false,
-      ),
-      PlutoColumn(
         title: 'Lab Value',
         field: 'inputList',
         type: PlutoColumnType.number(format: '#,###.############'),
@@ -79,9 +72,6 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
             'ranking': PlutoCell(value: index + 1),
             'proteinId': PlutoCell(value: result.proteinId),
             'prediction': PlutoCell(value: result.score),
-            'actualValue': PlutoCell(
-              value: editedResult.actualValues?[index] ?? 0.0,
-            ),
             'inputList': PlutoCell(
               value: inputList[index],
             ),
@@ -103,7 +93,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       child: Container(
-        width: 800,
+        width: 550,
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -132,7 +122,9 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
                 ),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    stateManager.setEditing(false);
+                    await Future.delayed(const Duration(milliseconds: 500));
                     widget.onStartDirectIteration(inputList);
                     Navigator.of(context).pop();
                   },
@@ -140,7 +132,9 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
                 ),
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    stateManager.setEditing(false);
+                    await Future.delayed(const Duration(milliseconds: 500));
                     widget.onStartIteration(inputList);
                     Navigator.of(context).pop();
                   },

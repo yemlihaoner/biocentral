@@ -247,7 +247,7 @@ class BayesianOptimizationPlotView extends StatelessWidget {
   }
 }
 
-/// A utility class to store and calculate min/max values for the y-axis
+/// A class to hold the minimum and maximum y-values for the scatter plot
 class MinMaxValues {
   final double minY;
   final double maxY;
