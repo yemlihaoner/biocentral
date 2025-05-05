@@ -79,11 +79,11 @@ class _BayesianOptimizationCommandViewState extends State<BayesianOptimizationCo
       builder: (BuildContext context) {
         return IterateTrainingDialog(
           currentResult: boBloc.currentResult!,
-          onStartIteration: (boolList) {
-            boBloc.add(BayesianOptimizationIterateTraining(context, boBloc.currentResult!, boolList));
+          onStartIteration: (inputList) {
+            boBloc.add(BayesianOptimizationIterateTraining(context, boBloc.currentResult!, inputList));
           },
-          onStartDirectIteration: (boolList) {
-            boBloc.add(BayesianOptimizationDirectIterateTraining(context, boBloc.currentResult!, boolList));
+          onStartDirectIteration: (inputList) {
+            boBloc.add(BayesianOptimizationDirectIterateTraining(context, boBloc.currentResult!, inputList));
           },
         );
       },

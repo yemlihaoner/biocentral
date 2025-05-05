@@ -4,8 +4,8 @@ import 'package:pluto_grid/pluto_grid.dart';
 
 class IterateTrainingDialog extends StatefulWidget {
   final BayesianOptimizationTrainingResult currentResult;
-  final Function(List<bool>) onStartIteration;
-  final Function(List<bool>) onStartDirectIteration;
+  final Function(List<double?>) onStartIteration;
+  final Function(List<double?>) onStartDirectIteration;
 
   const IterateTrainingDialog({
     required this.currentResult,
@@ -21,22 +21,23 @@ class IterateTrainingDialog extends StatefulWidget {
 class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
   late PlutoGridStateManager stateManager;
   late BayesianOptimizationTrainingResult editedResult;
-  List<bool> boolList = [];
+  List<double?> inputList = [];
 
   @override
   void initState() {
     super.initState();
     editedResult = widget.currentResult;
-    boolList = List.filled(editedResult.results?.length ?? 0, false);
+    inputList = List.filled(editedResult.results?.length ?? 0, null);
   }
 
   List<PlutoColumn> buildColumns() {
     return [
       PlutoColumn(
-        title: 'Select',
-        field: 'select',
-        type: PlutoColumnType.select(['true', 'false']),
-        width: 80,
+        title: 'Ranking',
+        field: 'ranking',
+        type: PlutoColumnType.number(format: '#'),
+        width: 100,
+        enableEditingMode: false,
       ),
       PlutoColumn(
         title: 'Protein ID',
@@ -46,8 +47,8 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
         enableEditingMode: false,
       ),
       PlutoColumn(
-        title: 'Score',
-        field: 'score',
+        title: 'Prediction',
+        field: 'prediction',
         type: PlutoColumnType.number(format: '#,###.############'),
         width: 150,
         enableEditingMode: false,
@@ -59,6 +60,12 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
         width: 150,
         enableEditingMode: false,
       ),
+      PlutoColumn(
+        title: 'Lab Value',
+        field: 'inputList',
+        type: PlutoColumnType.number(format: '#,###.############'),
+        width: 150,
+      ),
     ];
   }
 
@@ -69,11 +76,14 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
         final result = editedResult.results![index];
         return PlutoRow(
           cells: {
-            'select': PlutoCell(value: boolList[index] ? 'true' : 'false'),
+            'ranking': PlutoCell(value: index + 1),
             'proteinId': PlutoCell(value: result.proteinId),
-            'score': PlutoCell(value: result.score),
+            'prediction': PlutoCell(value: result.score),
             'actualValue': PlutoCell(
               value: editedResult.actualValues?[index] ?? 0.0,
+            ),
+            'inputList': PlutoCell(
+              value: inputList[index],
             ),
           },
         );
@@ -82,9 +92,9 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
   }
 
   void handleCellValueChanged(PlutoGridOnChangedEvent event) {
-    if (event.column.field == 'select') {
+    if (event.column.field == 'inputList') {
       setState(() {
-        boolList[event.rowIdx] = event.value == 'true';
+        inputList[event.rowIdx] = event.value;
       });
     }
   }
@@ -93,7 +103,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       child: Container(
-        width: 600,
+        width: 800,
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -123,7 +133,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
-                    widget.onStartDirectIteration(boolList);
+                    widget.onStartDirectIteration(inputList);
                     Navigator.of(context).pop();
                   },
                   child: const Text('Start with Same Config'),
@@ -131,7 +141,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
-                    widget.onStartIteration(boolList);
+                    widget.onStartIteration(inputList);
                     Navigator.of(context).pop();
                   },
                   child: const Text('Start with New Config'),

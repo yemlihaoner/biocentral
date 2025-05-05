@@ -21,6 +21,14 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
   /// Default columns configuration for the grid
   static final List<PlutoColumn> _defaultBOColumns = <PlutoColumn>[
     _createColumn(
+      title: 'Ranking',
+      field: 'ranking',
+      type: PlutoColumnType.text(),
+      footerType: PlutoAggregateColumnType.count,
+      footerTitle: 'N',
+      footerColor: Colors.green,
+    ),
+    _createColumn(
       title: 'Protein ID',
       field: 'proteinId',
       type: PlutoColumnType.text(),
@@ -53,7 +61,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
       footerColor: Colors.red,
     ),
     _createColumn(
-      title: 'Mean',
+      title: 'Prediction',
       field: 'mean',
       type: PlutoColumnType.number(format: '#,###.############'),
       footerType: PlutoAggregateColumnType.count,
@@ -73,7 +81,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final double columnWidth = constraints.maxWidth / _defaultBOColumns.length;
+          final double columnWidth = (constraints.maxWidth - 100) / _defaultBOColumns.length - 1;
           return _buildGrid(columnWidth);
         },
       ),
@@ -136,10 +144,16 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
 
   /// Builds and configures columns with the specified width
   List<PlutoColumn> buildColumns(double columnWidth) {
+    var index = 0;
     final List<PlutoColumn> result = List.from(_defaultBOColumns);
     for (PlutoColumn column in result) {
-      column.width = columnWidth;
-      column.minWidth = columnWidth;
+      if (index++ == 0) {
+        column.width = 100;
+        column.minWidth = 100;
+      } else {
+        column.width = columnWidth;
+        column.minWidth = columnWidth;
+      }
     }
     return result;
   }
@@ -149,10 +163,11 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
     if (widget.data?.results == null) {
       return [];
     }
-
+    int index = 0;
     return widget.data!.results!.map((data) {
       return PlutoRow(
         cells: {
+          'ranking': PlutoCell(value: ++index),
           'proteinId': PlutoCell(value: data.proteinId),
           'score': PlutoCell(value: data.score),
           'sequence': PlutoCell(value: data.sequence),

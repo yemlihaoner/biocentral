@@ -69,24 +69,26 @@ class BayesianOptimizationTrainingStarted extends BayesianOptimizationEvent {
 class BayesianOptimizationIterateTraining extends BayesianOptimizationEvent {
   final BuildContext context;
   final BayesianOptimizationTrainingResult trainingResult;
-  final List<bool> updateList;
+  final List<double?> updateList;
 
   /// Constructor for iterating Bayesian Optimization training.
   ///
   /// - [context]: The build context.
   /// - [trainingResult]: The training result to iterate from.
+  /// - [updateList]: The list of values to update.
   BayesianOptimizationIterateTraining(this.context, this.trainingResult, this.updateList);
 }
 
 class BayesianOptimizationDirectIterateTraining extends BayesianOptimizationEvent {
   final BuildContext context;
   final BayesianOptimizationTrainingResult trainingResult;
-  final List<bool> updateList;
+  final List<double?> updateList;
 
   /// Constructor for iterating Bayesian Optimization training.
   ///
   /// - [context]: The build context.
   /// - [trainingResult]: The training result to iterate from.
+  /// - [updateList]: The list of values to update.
   BayesianOptimizationDirectIterateTraining(this.context, this.trainingResult, this.updateList);
 }
 
@@ -138,22 +140,22 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
 
   BayesianOptimizationTrainingResult? get currentResult => _bayesianOptimizationRepository.currentResult;
 
-  /// Updates protein scores in the database based on training results
-  Future<void> _updateProteinScores(
+  /// Updates protein lab values in the database based on training results
+  Future<void> _updateProteinLabValues(
     BiocentralDatabase proteinDatabase,
     Map<String, dynamic> config,
     BayesianOptimizationTrainingResult trainingResult,
-    List<bool> updateList,
+    List<double?> updateList,
   ) async {
     for (int i = 0; i < updateList.length; i++) {
-      if (updateList[i]) {
+      if (updateList[i] != null) {
         final String proteinId = trainingResult.results![i].proteinId!;
-        final double? score = trainingResult.results![i].score;
-        if (score != null) {
+        final double? newvalue = updateList[i];
+        if (newvalue != null) {
           final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
           if (entity != null && entity is Protein) {
             final Map<String, String> newAttributes = Map.from(entity.attributes.toMap());
-            newAttributes[config['feature_name']] = score.toString();
+            newAttributes[config['feature_name']] = newvalue.toString();
             final Protein updatedProtein = entity.copyWith(attributes: CustomAttributes(newAttributes));
             proteinDatabase.updateEntity(proteinId, updatedProtein);
           }
@@ -380,7 +382,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
       return;
     }
 
-    await _updateProteinScores(proteinDatabase, config, event.trainingResult, event.updateList);
+    await _updateProteinLabValues(proteinDatabase, config, event.trainingResult, event.updateList);
 
     final configValues = _extractConfigValues(config);
 
@@ -445,7 +447,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
       return;
     }
 
-    await _updateProteinScores(proteinDatabase, config, event.trainingResult, event.updateList);
+    await _updateProteinLabValues(proteinDatabase, config, event.trainingResult, event.updateList);
 
     final configValues = _extractConfigValues(config);
     _startTraining(event.context, configValues);
