@@ -71,7 +71,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
           cells: {
             'ranking': PlutoCell(value: index + 1),
             'proteinId': PlutoCell(value: result.proteinId),
-            'prediction': PlutoCell(value: result.score),
+            'prediction': PlutoCell(value: result.mean),
             'inputList': PlutoCell(
               value: inputList[index],
             ),

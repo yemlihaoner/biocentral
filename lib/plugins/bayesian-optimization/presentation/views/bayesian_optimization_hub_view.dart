@@ -38,7 +38,7 @@ class _BayesianOptimizationHubViewState extends State<BayesianOptimizationHubVie
               child: BlocBuilder<BayesianOptimizationBloc, BayesianOptimizationState>(
                 builder: (context, state) {
                   final BayesianOptimizationBloc bloc = context.read<BayesianOptimizationBloc>();
-                  if (state.status == BiocentralCommandStatus.operating) {
+                  if (bloc.isOperationRunning || state.isOperating()) {
                     return const TabBarView(
                       children: [
                         Center(

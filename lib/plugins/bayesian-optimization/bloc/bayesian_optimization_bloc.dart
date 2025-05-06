@@ -110,8 +110,9 @@ final class BayesianOptimizationState extends BiocentralCommandState<BayesianOpt
   List<Object?> get props => [stateInformation, status];
 }
 
-class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent, BayesianOptimizationState>
-    with BiocentralSyncBloc, Effects<ReOpenColumnWizardEffect> {
+class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent, BayesianOptimizationState> {
+  bool isOperationRunning = false; // Lock to prevent premature reset
+
   final BayesianOptimizationRepository _bayesianOptimizationRepository;
   final BiocentralDatabaseRepository _biocentralDatabaseRepository;
   final BiocentralProjectRepository _biocentralProjectRepository;
@@ -288,8 +289,11 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
     BayesianOptimizationTrainingStarted event,
     Emitter<BayesianOptimizationState> emit,
   ) async {
+    isOperationRunning = true; // Lock the status
+
     final BiocentralDatabase? biocentralDatabase = _biocentralDatabaseRepository.getFromType(Protein);
     if (biocentralDatabase == null) {
+      isOperationRunning = false; // Release the lock
       emit(
         state.setErrored(
           information: 'Could not find the database for which to calculate embeddings!',
@@ -361,6 +365,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
                 information: 'Training completed',
               ),
             );
+            isOperationRunning = false; // Release the lock
           });
         },
       );
